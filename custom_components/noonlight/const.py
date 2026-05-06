@@ -41,3 +41,13 @@ EVENT_NOONLIGHT_ALARM_CREATED = "noonlight_alarm_created"
 NOTIFICATION_TOKEN_UPDATE_FAILURE = "noonlight_token_update_failure"
 NOTIFICATION_TOKEN_UPDATE_SUCCESS = "noonlight_token_update_success"
 NOTIFICATION_ALARM_CREATE_FAILURE = "noonlight_alarm_create_failure"
+
+CONF_NAME = "name"
+CONF_PHONE = "phone"
+CONF_NAME2 = "name2"
+CONF_PHONE2 = "phone2"
+CONF_INSTRUCTIONS = "instructions"
+CONF_DEV_TOKEN = "dev_token"
+
+ATTR_ALARM_CAUSE = "alarm_cause"
+ATTR_INSTRUCTIONS = "instructions"
