@@ -29,10 +29,18 @@ from .const import (
     CONF_ADDRESS_LINE2,
     CONF_API_ENDPOINT,
     CONF_CITY,
+    CONF_DEV_TOKEN,
+    CONF_INSTRUCTIONS,
+    CONF_NAME,
+    CONF_NAME2,
+    CONF_PHONE,
+    CONF_PHONE2,
     CONF_SECRET,
     CONF_STATE,
     CONF_TOKEN_ENDPOINT,
     CONF_ZIP,
+    ATTR_ALARM_CAUSE,
+    ATTR_INSTRUCTIONS,
     CONST_ALARM_STATUS_ACTIVE,
     CONST_ALARM_STATUS_CANCELED,
     CONST_NOONLIGHT_HA_SERVICE_CREATE_ALARM,
@@ -63,6 +71,13 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_CITY): cv.string,
                 vol.Optional(CONF_STATE): cv.string,
                 vol.Optional(CONF_ZIP): cv.string,
+                vol.Optional(CONF_NAME): cv.string,
+                vol.Optional(CONF_PHONE): cv.string,
+                vol.Optional(CONF_PIN): cv.string,
+                vol.Optional(CONF_NAME2): cv.string,
+                vol.Optional(CONF_PHONE2): cv.string,
+                vol.Optional(CONF_INSTRUCTIONS): cv.string,
+                vol.Optional(CONF_DEV_TOKEN): cv.string,
                 vol.Inclusive(
                     CONF_LATITUDE, "coordinates", "Include both latitude and longitude"
                 ): cv.latitude,
@@ -119,7 +134,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_create_alarm_service(call):
         """Create a noonlight alarm from a service"""
         service = call.data.get("service", None)
-        await noonlight_integration.create_alarm(alarm_types=[service])
+        alarm_cause = call.data.get(ATTR_ALARM_CAUSE)
+        instructions = call.data.get(ATTR_INSTRUCTIONS)
+        await noonlight_integration.create_alarm(
+            alarm_types=[service],
+            alarm_cause=alarm_cause,
+            instructions=instructions,
+        )
 
     hass.services.async_register(
         DOMAIN, CONST_NOONLIGHT_HA_SERVICE_CREATE_ALARM, handle_create_alarm_service
@@ -294,36 +315,92 @@ class NoonlightIntegration:
         if self._alarm is not None:
             return await self._alarm.get_status()
 
-    async def create_alarm(self, alarm_types=[nl.NOONLIGHT_SERVICES_POLICE]):
-        """Create a new alarm"""
+    async def create_alarm(
+        self,
+        alarm_types=[nl.NOONLIGHT_SERVICES_POLICE],
+        alarm_cause=None,
+        instructions=None,
+    ):
+        """Create a new alarm."""
         services = {}
         for alarm_type in alarm_types or ():
             if alarm_type in CONST_NOONLIGHT_SERVICE_TYPES:
                 services[alarm_type] = True
+
         if self._alarm is None:
             try:
-                if len(self.addline1) > 0:
+                api_endpoint = self.config.get(CONF_API_ENDPOINT, "")
+
+                if self.config.get(CONF_DEV_TOKEN):
+                    self.client.set_token(token=self.config.get(CONF_DEV_TOKEN))
+
+                if "dispatch" in api_endpoint:
                     alarm_body = {
-                        "location.address": {
-                            "line1": self.addline1,
-                            "city": self.addcity,
-                            "state": self.addstate,
-                            "zip": self.addzip,
-                        }
+                        "location": {
+                            "address": {
+                                "line1": self.addline1,
+                                "line2": self.addline2 or "N/A",
+                                "city": self.addcity,
+                                "state": self.addstate,
+                                "zip": self.addzip,
+                            }
+                        },
+                        "name": self.config.get(CONF_NAME),
+                        "phone": self.config.get(CONF_PHONE),
+                        "pin": self.config.get(CONF_PIN),
                     }
-                    if len(self.addline2) > 0:
-                        alarm_body["location.address"]["line2"] = self.addline2
+
+                    dispatch_instructions = instructions or self.config.get(CONF_INSTRUCTIONS)
+                    if alarm_cause:
+                        if dispatch_instructions:
+                            dispatch_instructions = (
+                                f"Alarm cause is {alarm_cause}. {dispatch_instructions}"
+                            )
+                        else:
+                            dispatch_instructions = f"Alarm cause is {alarm_cause}."
+
+                    if dispatch_instructions:
+                        alarm_body["instructions"] = {"entry": dispatch_instructions}
+
+                    if services:
+                        alarm_body["services"] = services
+
+                    self._alarm = await self.client.create_alarm(body=alarm_body)
+
+                    if self.config.get(CONF_NAME2) and self.config.get(CONF_PHONE2):
+                        await self.client._post(
+                            f"{self.client.alarms_url}/{self._alarm.id}/people",
+                            data=[
+                                {
+                                    "name": self.config.get(CONF_NAME2),
+                                    "phone": self.config.get(CONF_PHONE2),
+                                    "pin": self.config.get(CONF_PIN),
+                                }
+                            ],
+                        )
                 else:
-                    alarm_body = {
-                        "location.coordinates": {
-                            "lat": self.latitude,
-                            "lng": self.longitude,
-                            "accuracy": 5,
+                    if len(self.addline1) > 0:
+                        alarm_body = {
+                            "location.address": {
+                                "line1": self.addline1,
+                                "city": self.addcity,
+                                "state": self.addstate,
+                                "zip": self.addzip,
+                            }
                         }
-                    }
-                if len(services) > 0:
-                    alarm_body["services"] = services
-                self._alarm = await self.client.create_alarm(body=alarm_body)
+                        if len(self.addline2) > 0:
+                            alarm_body["location.address"]["line2"] = self.addline2
+                    else:
+                        alarm_body = {
+                            "location.coordinates": {
+                                "lat": self.latitude,
+                                "lng": self.longitude,
+                                "accuracy": 5,
+                            }
+                        }
+                    if services:
+                        alarm_body["services"] = services
+                    self._alarm = await self.client.create_alarm(body=alarm_body)
             except nl.NoonlightClient.ClientError as client_error:
                 persistent_notification.create(
                     self.hass,
@@ -340,17 +417,6 @@ class NoonlightIntegration:
                     self._alarm.status,
                 )
                 cancel_interval = None
-
-                async def check_alarm_status_interval(now):
-                    _LOGGER.debug("checking alarm status...")
-                    if await self.update_alarm_status() == CONST_ALARM_STATUS_CANCELED:
-                        _LOGGER.debug("alarm %s has been canceled!", self._alarm.id)
-                        if cancel_interval is not None:
-                            cancel_interval()
-                        if self._alarm is not None:
-                            if self._alarm.status == CONST_ALARM_STATUS_CANCELED:
-                                self._alarm = None
-                        async_dispatcher_send(self.hass, EVENT_NOONLIGHT_ALARM_CANCELED)
 
                 cancel_interval = async_track_time_interval(
                     self.hass, check_alarm_status_interval, timedelta(seconds=15)

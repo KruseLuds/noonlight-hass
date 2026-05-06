@@ -5,7 +5,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.const import CONF_ID, CONF_LATITUDE, CONF_LONGITUDE, CONF_NAME
+from homeassistant.const import CONF_ID, CONF_LATITUDE, CONF_LONGITUDE, CONF_NAME, CONF_PIN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
 
@@ -14,7 +14,12 @@ from .const import (
     CONF_ADDRESS_LINE2,
     CONF_API_ENDPOINT,
     CONF_CITY,
+    CONF_DEV_TOKEN,
+    CONF_INSTRUCTIONS,
     CONF_LOCATION_MODE,
+    CONF_NAME2,
+    CONF_PHONE,
+    CONF_PHONE2,
     CONF_SECRET,
     CONF_STATE,
     CONF_TOKEN_ENDPOINT,
@@ -26,77 +31,32 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
 LOCATION_MODE_LIST = [
     selector.SelectOptionDict(label="Use Latitude/Longitude", value="latlong"),
     selector.SelectOptionDict(label="Use Address", value="address"),
 ]
+
 STATES = [
-    "AK",
-    "AL",
-    "AR",
-    "AZ",
-    "CA",
-    "CO",
-    "CT",
-    "DC",
-    "DE",
-    "FL",
-    "GA",
-    "HI",
-    "IA",
-    "ID",
-    "IL",
-    "IN",
-    "KS",
-    "KY",
-    "LA",
-    "MA",
-    "MD",
-    "ME",
-    "MI",
-    "MN",
-    "MO",
-    "MS",
-    "MT",
-    "NC",
-    "ND",
-    "NE",
-    "NH",
-    "NJ",
-    "NM",
-    "NV",
-    "NY",
-    "OH",
-    "OK",
-    "OR",
-    "PA",
-    "RI",
-    "SC",
-    "SD",
-    "TN",
-    "TX",
-    "UT",
-    "VA",
-    "VT",
-    "WA",
-    "WI",
-    "WV",
-    "WY",
+    "AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DC", "DE", "FL", "GA", "HI",
+    "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD", "ME", "MI", "MN",
+    "MO", "MS", "MT", "NC", "ND", "NE", "NH", "NJ", "NM", "NV", "NY", "OH",
+    "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VA", "VT", "WA",
+    "WI", "WV", "WY",
 ]
 
 
 async def _async_build_noonlight_schema(
-    hass: HomeAssistant, user_input: list, default_dict: list
+    hass: HomeAssistant, user_input: dict | None, default_dict: dict
 ) -> Any:
     """Gets a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
 
-    def _get_default(key: str, fallback_default: Any = None) -> None:
-        """Gets default value for key."""
+    def _get_default(key: str, fallback_default: Any = None) -> Any:
         return user_input.get(key, default_dict.get(key, fallback_default))
 
-    build_schema = vol.Schema(
+    return vol.Schema(
         {
             vol.Required(
                 CONF_NAME,
@@ -131,21 +91,59 @@ async def _async_build_noonlight_schema(
             ),
         }
     )
-    return build_schema
+
+
+async def _async_build_v2_dispatch_schema(
+    hass: HomeAssistant, user_input: dict | None, default_dict: dict
+) -> Any:
+    """Build schema for optional V2 dispatch metadata."""
+    if user_input is None:
+        user_input = {}
+
+    def _get_default(key: str, fallback_default: Any = None) -> Any:
+        return user_input.get(key, default_dict.get(key, fallback_default))
+
+    return vol.Schema(
+        {
+            vol.Optional(
+                CONF_PHONE,
+                default=_get_default(CONF_PHONE),
+            ): selector.TextSelector(selector.TextSelectorConfig()),
+            vol.Optional(
+                CONF_PIN,
+                default=_get_default(CONF_PIN),
+            ): selector.TextSelector(selector.TextSelectorConfig()),
+            vol.Optional(
+                CONF_NAME2,
+                default=_get_default(CONF_NAME2),
+            ): selector.TextSelector(selector.TextSelectorConfig()),
+            vol.Optional(
+                CONF_PHONE2,
+                default=_get_default(CONF_PHONE2),
+            ): selector.TextSelector(selector.TextSelectorConfig()),
+            vol.Optional(
+                CONF_INSTRUCTIONS,
+                default=_get_default(CONF_INSTRUCTIONS),
+            ): selector.TextSelector(selector.TextSelectorConfig(multiline=True)),
+            vol.Optional(
+                CONF_DEV_TOKEN,
+                default=_get_default(CONF_DEV_TOKEN),
+            ): selector.TextSelector(selector.TextSelectorConfig()),
+        }
+    )
 
 
 async def _async_build_latlong_schema(
-    hass: HomeAssistant, user_input: list, default_dict: list
+    hass: HomeAssistant, user_input: dict | None, default_dict: dict
 ) -> Any:
     """Gets a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
 
-    def _get_default(key: str, fallback_default: Any = None) -> None:
-        """Gets default value for key."""
+    def _get_default(key: str, fallback_default: Any = None) -> Any:
         return user_input.get(key, default_dict.get(key, fallback_default))
 
-    build_schema = vol.Schema(
+    return vol.Schema(
         {
             vol.Optional(
                 CONF_LATITUDE,
@@ -158,29 +156,22 @@ async def _async_build_latlong_schema(
         }
     )
 
-    return build_schema
-
 
 async def _async_build_address_schema(
-    hass: HomeAssistant, user_input: list, default_dict: list
+    hass: HomeAssistant, user_input: dict | None, default_dict: dict
 ) -> Any:
     """Gets a schema using the default_dict as a backup."""
     if user_input is None:
         user_input = {}
 
-    def _get_default(key: str, fallback_default: Any = None) -> None:
-        """Gets default value for key."""
+    def _get_default(key: str, fallback_default: Any = None) -> Any:
         return user_input.get(key, default_dict.get(key, fallback_default))
 
     build_schema = vol.Schema({})
 
     if _get_default(CONF_ADDRESS_LINE1) is None:
         build_schema = build_schema.extend(
-            {
-                vol.Required(
-                    CONF_ADDRESS_LINE1,
-                ): selector.TextSelector(selector.TextSelectorConfig()),
-            }
+            {vol.Required(CONF_ADDRESS_LINE1): selector.TextSelector(selector.TextSelectorConfig())}
         )
     else:
         build_schema = build_schema.extend(
@@ -188,16 +179,13 @@ async def _async_build_address_schema(
                 vol.Required(
                     CONF_ADDRESS_LINE1,
                     default=_get_default(CONF_ADDRESS_LINE1),
-                ): selector.TextSelector(selector.TextSelectorConfig()),
+                ): selector.TextSelector(selector.TextSelectorConfig())
             }
         )
+
     if _get_default(CONF_ADDRESS_LINE2) is None:
         build_schema = build_schema.extend(
-            {
-                vol.Optional(
-                    CONF_ADDRESS_LINE2,
-                ): selector.TextSelector(selector.TextSelectorConfig()),
-            }
+            {vol.Optional(CONF_ADDRESS_LINE2): selector.TextSelector(selector.TextSelectorConfig())}
         )
     else:
         build_schema = build_schema.extend(
@@ -205,16 +193,13 @@ async def _async_build_address_schema(
                 vol.Optional(
                     CONF_ADDRESS_LINE2,
                     default=_get_default(CONF_ADDRESS_LINE2),
-                ): selector.TextSelector(selector.TextSelectorConfig()),
+                ): selector.TextSelector(selector.TextSelectorConfig())
             }
         )
+
     if _get_default(CONF_CITY) is None:
         build_schema = build_schema.extend(
-            {
-                vol.Required(
-                    CONF_CITY,
-                ): selector.TextSelector(selector.TextSelectorConfig()),
-            }
+            {vol.Required(CONF_CITY): selector.TextSelector(selector.TextSelectorConfig())}
         )
     else:
         build_schema = build_schema.extend(
@@ -222,15 +207,14 @@ async def _async_build_address_schema(
                 vol.Required(
                     CONF_CITY,
                     default=_get_default(CONF_CITY),
-                ): selector.TextSelector(selector.TextSelectorConfig()),
+                ): selector.TextSelector(selector.TextSelectorConfig())
             }
         )
+
     if _get_default(CONF_STATE) is None:
         build_schema = build_schema.extend(
             {
-                vol.Required(
-                    CONF_STATE,
-                ): selector.SelectSelector(
+                vol.Required(CONF_STATE): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=STATES,
                         multiple=False,
@@ -256,13 +240,10 @@ async def _async_build_address_schema(
                 )
             }
         )
+
     if _get_default(CONF_ZIP) is None:
         build_schema = build_schema.extend(
-            {
-                vol.Required(
-                    CONF_ZIP,
-                ): selector.TextSelector(selector.TextSelectorConfig()),
-            }
+            {vol.Required(CONF_ZIP): selector.TextSelector(selector.TextSelectorConfig())}
         )
     else:
         build_schema = build_schema.extend(
@@ -270,7 +251,7 @@ async def _async_build_address_schema(
                 vol.Required(
                     CONF_ZIP,
                     default=_get_default(CONF_ZIP),
-                ): selector.TextSelector(selector.TextSelectorConfig()),
+                ): selector.TextSelector(selector.TextSelectorConfig())
             }
         )
 
@@ -297,23 +278,22 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if yaml_import:
                 self._data.update(
                     {
-                        CONF_NAME: DEFAULT_NAME,
-                        CONF_LOCATION_MODE: "latlong",
-                        CONF_LATITUDE: self.hass.config.latitude,
-                        CONF_LONGITUDE: self.hass.config.longitude,
+                        CONF_NAME: self._data.get(CONF_NAME, DEFAULT_NAME),
+                        CONF_LOCATION_MODE: self._data.get(CONF_LOCATION_MODE, "latlong"),
+                        CONF_LATITUDE: self._data.get(CONF_LATITUDE, self.hass.config.latitude),
+                        CONF_LONGITUDE: self._data.get(CONF_LONGITUDE, self.hass.config.longitude),
                     }
                 )
                 _LOGGER.debug(f"[async_step_user] self._data: {self._data}")
                 return self.async_create_entry(
                     title=self._data[CONF_NAME], data=self._data
                 )
+
             _LOGGER.debug(f"[async_step_user] self._data: {self._data}")
             if self._data.get(CONF_LOCATION_MODE) == "latlong":
                 return await self.async_step_latlong()
-            else:
-                return await self.async_step_address()
+            return await self.async_step_address()
 
-        # Defaults
         defaults = {
             CONF_NAME: DEFAULT_NAME,
             CONF_API_ENDPOINT: DEFAULT_API_ENDPOINT,
@@ -337,16 +317,11 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._data.update(user_input)
             _LOGGER.debug(f"[async_step_address] self._data: {self._data}")
-            return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
-
-        # Defaults
-        defaults = {}
+            return await self.async_step_v2_dispatch()
 
         return self.async_show_form(
             step_id="address",
-            data_schema=await _async_build_address_schema(
-                self.hass, user_input, defaults
-            ),
+            data_schema=await _async_build_address_schema(self.hass, user_input, {}),
             errors=self._errors,
         )
 
@@ -359,9 +334,8 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._data.update(user_input)
             _LOGGER.debug(f"[async_step_latlong] self._data: {self._data}")
-            return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
+            return await self.async_step_v2_dispatch()
 
-        # Defaults
         defaults = {
             CONF_LATITUDE: self.hass.config.latitude,
             CONF_LONGITUDE: self.hass.config.longitude,
@@ -371,6 +345,25 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="latlong",
             data_schema=await _async_build_latlong_schema(
                 self.hass, user_input, defaults
+            ),
+            errors=self._errors,
+        )
+
+    async def async_step_v2_dispatch(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle optional V2 dispatch metadata step."""
+
+        self._errors = {}
+        if user_input is not None:
+            self._data.update(user_input)
+            _LOGGER.debug(f"[async_step_v2_dispatch] self._data: {self._data}")
+            return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
+
+        return self.async_show_form(
+            step_id="v2_dispatch",
+            data_schema=await _async_build_v2_dispatch_schema(
+                self.hass, user_input, self._data
             ),
             errors=self._errors,
         )
@@ -390,6 +383,7 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 f"[Noonlight] Invalid YAML Config. Cannot Import: {import_config}"
             )
             return
+
         _LOGGER.debug(f"[async_step_import] import_config: {import_config}")
         return await self.async_step_user(user_input=import_config, yaml_import=True)
 
@@ -417,8 +411,7 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.debug(f"[async_step_init] self._data: {self._data}")
             if self._data.get(CONF_LOCATION_MODE) == "latlong":
                 return await self.async_step_reconfig_latlong()
-            else:
-                return await self.async_step_reconfig_address()
+            return await self.async_step_reconfig_address()
 
         return self.async_show_form(
             step_id="reconfigure_confirm",
@@ -441,9 +434,7 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if user_input.get(CONF_ADDRESS_LINE2, None) is None:
                 self._data.pop(CONF_ADDRESS_LINE2, None)
             _LOGGER.debug(f"[async_step_reconfig_address] self._data: {self._data}")
-            self.hass.config_entries.async_update_entry(self._entry, data=self._data)
-            await self.hass.config_entries.async_reload(self._entry.entry_id)
-            return self.async_abort(reason="reconfigure_successful")
+            return await self.async_step_reconfig_v2_dispatch()
 
         return self.async_show_form(
             step_id="reconfig_address",
@@ -467,13 +458,32 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._data.pop(CONF_STATE, None)
             self._data.pop(CONF_ZIP, None)
             _LOGGER.debug(f"[async_step_reconfig_latlong] self._data: {self._data}")
+            return await self.async_step_reconfig_v2_dispatch()
+
+        return self.async_show_form(
+            step_id="reconfig_latlong",
+            data_schema=await _async_build_latlong_schema(
+                self.hass, user_input, self._data
+            ),
+            errors=self._errors,
+        )
+
+    async def async_step_reconfig_v2_dispatch(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle optional V2 dispatch metadata during reconfiguration."""
+
+        self._errors = {}
+        if user_input is not None:
+            self._data.update(user_input)
+            _LOGGER.debug(f"[async_step_reconfig_v2_dispatch] self._data: {self._data}")
             self.hass.config_entries.async_update_entry(self._entry, data=self._data)
             await self.hass.config_entries.async_reload(self._entry.entry_id)
             return self.async_abort(reason="reconfigure_successful")
 
         return self.async_show_form(
-            step_id="reconfig_latlong",
-            data_schema=await _async_build_latlong_schema(
+            step_id="reconfig_v2_dispatch",
+            data_schema=await _async_build_v2_dispatch_schema(
                 self.hass, user_input, self._data
             ),
             errors=self._errors,

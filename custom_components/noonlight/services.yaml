@@ -1,10 +1,10 @@
 create_alarm:
   name: Create Alarm
-  description: Notifies Noonlight of an alarm with specific services.
+  description: Notifies Noonlight of an alarm with optional V2 dispatch metadata.
   fields:
     service:
       name: Service
-      description: Service that the alarm should call (police, fire, medical)
+      description: Service that the alarm should call.
       required: true
       example: "police"
       default: "police"
@@ -14,3 +14,17 @@ create_alarm:
             - "police"
             - "fire"
             - "medical"
+    alarm_cause:
+      name: Alarm Cause
+      description: Human-readable alarm cause or triggering sensor detail to include in dispatch instructions.
+      required: false
+      example: "Mud room storm door opened"
+      selector:
+        text:
+    instructions:
+      name: Instructions
+      description: Additional instructions to include with the alarm.
+      required: false
+      example: "Initial alarm setup, please call so client can verify everything is working."
+      selector:
+        text:
