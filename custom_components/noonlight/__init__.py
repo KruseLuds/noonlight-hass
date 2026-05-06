@@ -29,10 +29,18 @@ from .const import (
     CONF_ADDRESS_LINE2,
     CONF_API_ENDPOINT,
     CONF_CITY,
+    CONF_DEV_TOKEN,
+    CONF_INSTRUCTIONS,
+    CONF_NAME,
+    CONF_NAME2,
+    CONF_PHONE,
+    CONF_PHONE2,
     CONF_SECRET,
     CONF_STATE,
     CONF_TOKEN_ENDPOINT,
     CONF_ZIP,
+    ATTR_ALARM_CAUSE,
+    ATTR_INSTRUCTIONS,
     CONST_ALARM_STATUS_ACTIVE,
     CONST_ALARM_STATUS_CANCELED,
     CONST_NOONLIGHT_HA_SERVICE_CREATE_ALARM,
@@ -63,6 +71,13 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_CITY): cv.string,
                 vol.Optional(CONF_STATE): cv.string,
                 vol.Optional(CONF_ZIP): cv.string,
+                vol.Optional(CONF_NAME): cv.string,
+                vol.Optional(CONF_PHONE): cv.string,
+                vol.Optional(CONF_PIN): cv.string,
+                vol.Optional(CONF_NAME2): cv.string,
+                vol.Optional(CONF_PHONE2): cv.string,
+                vol.Optional(CONF_INSTRUCTIONS): cv.string,
+                vol.Optional(CONF_DEV_TOKEN): cv.string,
                 vol.Inclusive(
                     CONF_LATITUDE, "coordinates", "Include both latitude and longitude"
                 ): cv.latitude,
@@ -119,7 +134,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_create_alarm_service(call):
         """Create a noonlight alarm from a service"""
         service = call.data.get("service", None)
-        await noonlight_integration.create_alarm(alarm_types=[service])
+        alarm_cause = call.data.get(ATTR_ALARM_CAUSE)
+        instructions = call.data.get(ATTR_INSTRUCTIONS)
+        await noonlight_integration.create_alarm(
+            alarm_types=[service],
+            alarm_cause=alarm_cause,
+            instructions=instructions,
+        )
 
     hass.services.async_register(
         DOMAIN, CONST_NOONLIGHT_HA_SERVICE_CREATE_ALARM, handle_create_alarm_service
