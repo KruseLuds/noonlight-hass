@@ -9,7 +9,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ID, CONF_LATITUDE, CONF_LONGITUDE
+from homeassistant.const import CONF_ID, CONF_LATITUDE, CONF_LONGITUDE, CONF_PIN
 from homeassistant.core import DOMAIN as HOMEASSISTANT_DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
