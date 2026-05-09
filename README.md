@@ -8,7 +8,7 @@ It is based on the original Noonlight Home Assistant integration project and has
 
 ## What Changed in This Fork
 
-This fork modernizes and extends the original Noonlight Home Assistant integration with a focus on newer Noonlight Dispatch API workflows, improved Home Assistant automation support, safer testing workflows, and richer dispatch context.
+This fork allows additional important critical and timely contextual information to be included in alerts such as the sensor name, cause of the alert and instructions for the dispatcher. To do so, it modernizes and extends the original Noonlight Home Assistant integration with a focus on newer Noonlight Dispatch API workflows, improved Home Assistant automation support, safer testing workflows, and richer dispatch context.
 
 Major additions include:
 
@@ -432,7 +432,7 @@ Repeat the same categories of testing above in production, while carefully coord
 
 Always notify anyone who may receive alarm calls before testing.
 
-Always notify anyone who may receive alarm calls before testing.
+Always notify anyone who may receive SMS alerts before testing.
 
 ---
 
