@@ -14,6 +14,20 @@ create_alarm:
             - "police"
             - "fire"
             - "medical"
+    api_endpoint:
+      name: API Endpoint Override
+      description: Optional Noonlight API endpoint override for sandbox or production testing.
+      required: false
+      example: "https://api-sandbox.noonlight.com/dispatch/v1"
+      selector:
+        text:
+    token_endpoint:
+      name: Token Endpoint Override
+      description: Optional Noonlight token endpoint override.
+      required: false
+      example: "https://noonlight.konnected.io/ha/token"
+      selector:
+        text:
     alarm_cause:
       name: Alarm Cause
       description: Human-readable alarm cause or triggering sensor detail to include in dispatch instructions.
