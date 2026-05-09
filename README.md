@@ -6,9 +6,11 @@ This is an unofficial Home Assistant custom integration for the Noonlight Dispat
 
 It is based on the original Noonlight Home Assistant integration project and has been extended to support modern Noonlight Dispatch API workflows, sandbox testing, Home Assistant event generation, improved error handling, and more advanced automation support.
 
+As stated in the original integration: "Noonlight connects to emergency 9-1-1 services in all 50 U.S. states. Backed by a UL-compliant alarm monitoring center and staffed 24/7 with live operators in the United States, Noonlight is standing by to send help to your home at a moment's notice." (Currently this is only available in the USA.)
+
 ## What Changed in This Fork
 
-This fork allows additional important critical and timely contextual information to be included in alerts such as the sensor name, cause of the alert and instructions for the dispatcher. To do so, it modernizes and extends the original Noonlight Home Assistant integration with a focus on newer Noonlight Dispatch API workflows, improved Home Assistant automation support, safer testing workflows and richer dispatch context.
+This fork allows additional important critical and timely contextual information to be included in alerts such as the sensor name, cause of the alert and instructions for the dispatcher. It also modernizes and extends the original Noonlight Home Assistant integration with a focus on newer Noonlight Dispatch API workflows, improved Home Assistant automation support, safer testing workflows and richer dispatch context.
 
 Major additions include:
 
