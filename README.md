@@ -51,7 +51,7 @@ Examples might include:
 * “Medical alert button pressed by homeowner.”
 * “TEST ONLY. DO NOT DISPATCH.”
 
-The goal is to also provide dispatchers and monitoring operators with clearer situational awareness and more nuanced alarm context right at the same time they receive the alert (the previous integration had no test environment available and was only "police/fire/medical" with no other information).
+The goal is to also provide dispatchers and monitoring operators with clearer situational awareness and more nuanced alarm context right at the same time they receive the alert. The original integration with no test environment was only "police/fire/medical" with no other information (causing dispatchers/first responders to possibly waste time determining the original reason for the alarm).
 
 The integration is intended for advanced Home Assistant users who want to integrate professionally monitored dispatch workflows directly into their own automations and alarm systems.
 
