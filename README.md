@@ -8,7 +8,7 @@ It is based on the original Noonlight Home Assistant integration project and has
 
 ## What Changed in This Fork
 
-This fork allows additional important critical and timely contextual information to be included in alerts such as the sensor name, cause of the alert and instructions for the dispatcher. To do so, it modernizes and extends the original Noonlight Home Assistant integration with a focus on newer Noonlight Dispatch API workflows, improved Home Assistant automation support, safer testing workflows, and richer dispatch context.
+This fork allows additional important critical and timely contextual information to be included in alerts such as the sensor name, cause of the alert and instructions for the dispatcher. To do so, it modernizes and extends the original Noonlight Home Assistant integration with a focus on newer Noonlight Dispatch API workflows, improved Home Assistant automation support, safer testing workflows and richer dispatch context.
 
 Major additions include:
 
@@ -51,9 +51,9 @@ Examples might include:
 * “Medical alert button pressed by homeowner.”
 * “TEST ONLY. DO NOT DISPATCH.”
 
-The goal is to provide dispatchers and monitoring operators with clearer situational awareness and more nuanced alarm context - right at the time they receive the alert - than the original integration supported.
+The goal is to also provide dispatchers and monitoring operators with clearer situational awareness and more nuanced alarm context right at the same time they receive the alert (the previous integration had no test environment available and was only "police/fire/medical" with no other information).
 
-The integration is intended for advanced Home Assistant users who want to integrate professionally monitored dispatch workflows into their own automations and alarm systems.
+The integration is intended for advanced Home Assistant users who want to integrate professionally monitored dispatch workflows directly into their own automations and alarm systems.
 
 ---
 
