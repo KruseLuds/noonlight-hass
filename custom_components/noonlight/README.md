@@ -4,62 +4,82 @@
 
 This is an unofficial Home Assistant custom integration for the Noonlight Dispatch API.
 
-It is based on the original Noonlight Home Assistant integration project and has been extended to support modern Noonlight Dispatch API workflows, sandbox testing, Home Assistant event generation, improved error handling, and more advanced automation support.
+It is based on the original Noonlight Home Assistant integration project and has been significantly extended to support modern Noonlight Dispatch API workflows, sandbox testing, Home Assistant event generation, webhook integrations, richer dispatch context, improved diagnostics, and advanced Home Assistant automation architectures.
 
-As stated in the original integration: "Noonlight connects to emergency 9-1-1 services in all 50 U.S. states. Backed by a UL-compliant alarm monitoring center and staffed 24/7 with live operators in the United States, Noonlight is standing by to send help to your home at a moment's notice." (Currently this is only available in the USA.)
+As stated in the original integration:
 
-## What Changed in This Fork
+> "Noonlight connects to emergency 9-1-1 services in all 50 U.S. states. Backed by a UL-compliant alarm monitoring center and staffed 24/7 with live operators in the United States, Noonlight is standing by to send help to your home at a moment's notice."
 
-This fork allows additional important critical and timely contextual information to be included in alerts such as the sensor name, cause of the alert and instructions for the dispatcher. It also modernizes and extends the original Noonlight Home Assistant integration with a focus on newer Noonlight Dispatch API workflows, improved Home Assistant automation support, safer testing workflows and richer dispatch context.
+(Currently this service is only available in the United States.)
 
-Major additions include:
+This fork focuses heavily on:
 
-- Sandbox Dispatch API support
-- Sandbox server token override support
-- Production vs sandbox safety protections
-- Rich human-readable alarm context support
-- Alarm cause and dispatch instruction support
-- Home Assistant dispatch lifecycle events
-- Webhook receiver support
-- Improved logging and diagnostics
-- Better Home Assistant automation integration
-- Improved failure handling
-- Cleaner notification architecture
+* Safer testing workflows
+* Sandbox vs production separation
+* Richer dispatch information
+* Better Home Assistant automation integration
+* Improved observability and diagnostics
+* Advanced routing and notification workflows
+* Fail-closed operational safety protections
 
-This fork is intended for advanced Home Assistant users who want deeper control, testing, automation, and observability around Noonlight dispatch workflows.
+---
 
-This project allows Home Assistant automations to request emergency dispatch assistance from Noonlight for:
+# What Changed in This Fork
+
+The original integration only supported very minimal dispatch context consisting primarily of:
 
 * Police
 * Fire
 * Medical
 
-A major enhancement in this fork is support for newer Noonlight Dispatch API workflows that allow significantly richer contextual information to be sent along with an alarm. Instead of sending only a generic alarm signal, Home Assistant automations can now include detailed alarm causes, triggering sensor information, human-readable descriptions, and custom dispatcher instructions.
+This fork modernizes and significantly extends the integration to support newer Noonlight Dispatch API workflows and much richer automation-driven dispatch context.
 
-This allows Noonlight operators to receive substantially more useful context about what actually happened, such as:
+Major additions include:
+
+* Noonlight Dispatch API v2-compatible workflow support
+* Sandbox testing support
+* Sandbox server token override support
+* Production vs sandbox safety protections
+* Rich human-readable alarm context support
+* Alarm cause support
+* Dispatch instruction support
+* Home Assistant dispatch lifecycle events
+* Webhook receiver support
+* Improved logging and diagnostics
+* Better Home Assistant automation integration
+* Cleaner notification architecture
+* Improved failure handling
+* API endpoint override support
+* Token endpoint override support
+* Home Assistant event-driven automation workflows
+
+This allows Home Assistant automations to provide significantly more useful dispatch information such as:
 
 * Which sensor triggered
 * Which room or area was involved
 * Whether the alarm was intrusion, fire, or medical related
-* Human-readable trigger descriptions
-* Testing vs live dispatch context
-* Custom dispatch instructions
-* Additional automation-generated situational details
+* Whether the alarm is TEST or LIVE
+* Occupancy context
+* Human-readable alarm descriptions
+* Additional automation-generated situational context
+* Dispatcher instructions
+* Property access information
+* Contact workflows
 
-Examples might include:
+Examples:
 
-* “Mud room storm door at back of house was opened.”
-* “Smoke detector activated in basement utility room.”
+* “Mud room storm door at rear of home opened while system armed Away.”
+* “Smoke detector activated in basement utility room near furnace.”
 * “Medical alert button pressed by homeowner.”
 * “TEST ONLY. DO NOT DISPATCH.”
 
-The goal is to also provide dispatchers and monitoring operators with clearer situational awareness and more nuanced alarm context right at the same time they receive the alert. The original integration with no test environment was only "police/fire/medical" with no other information (causing dispatchers/first responders to possibly waste time determining the original reason for the alarm).
+The goal is to provide monitoring operators and first responders with clearer situational awareness at the exact same time the alarm is created.
 
-The integration is intended for advanced Home Assistant users who want to integrate professionally monitored dispatch workflows directly into their own automations and alarm systems.
+This fork is intended for advanced Home Assistant users who want deeper control, testing, automation, observability, and routing flexibility around Noonlight dispatch workflows.
 
 ---
 
-## Important Safety Notice
+# Important Safety Notice
 
 This project is NOT certified life-safety software.
 
@@ -93,12 +113,14 @@ Always maintain independent safety measures and test regularly.
 
 ---
 
-## Features
+# Features
 
-### Core Features
+## Core Features
 
 * Home Assistant Noonlight integration
-* Supports police, fire, and medical dispatch requests
+* Police dispatch support
+* Fire dispatch support
+* Medical dispatch support
 * Address-based dispatch support
 * Coordinate-based dispatch support
 * Home Assistant switch entity support
@@ -107,7 +129,7 @@ Always maintain independent safety measures and test regularly.
 * Home Assistant event generation
 * Improved logging and diagnostics
 
-### Extended Features Added in This Fork
+## Extended Features Added in This Fork
 
 * Noonlight Dispatch API v2-compatible workflow support
 * Sandbox testing support
@@ -121,44 +143,50 @@ Always maintain independent safety measures and test regularly.
 * Fail-closed production/sandbox safety checks
 * Improved error handling
 * Improved logging
-* Removal of hardcoded persistent notification behavior
 * Better Home Assistant automation integration
+* Removal of hardcoded notification behavior
+* Cleaner event-driven architecture
 
 ---
 
-## Home Assistant Events
+# Home Assistant Events
 
-This integration fires Home Assistant events that can be used in automations.
+This integration fires Home Assistant events that can be used in automations, logging systems, dashboards, and notification routing workflows.
 
-### Events
+## Events
 
-#### `noonlight_alarm_attempted`
+### `noonlight_alarm_attempted`
 
 Fired whenever the integration attempts to create a Noonlight alarm.
 
-#### `noonlight_alarm_created`
+### `noonlight_alarm_created`
 
 Fired when Noonlight successfully creates an ACTIVE alarm.
 
-#### `noonlight_alarm_failed`
+### `noonlight_alarm_failed`
 
 Fired when alarm creation fails.
 
-#### `noonlight_webhook_received`
+### `noonlight_webhook_received`
 
 Fired whenever the integration receives an inbound Noonlight webhook.
 
 ---
 
-## Installation
+# Installation
 
 ## HACS Installation
 
 1. Open HACS
 2. Go to Integrations
-3. Open the menu in the upper right
+3. Open the menu in the upper-right corner
 4. Select Custom Repositories
-5. Add this repository URL
+5. Add this repository URL:
+
+```text
+https://github.com/KruseLuds/noonlight-hass
+```
+
 6. Category: Integration
 7. Install the integration
 8. Restart Home Assistant
@@ -177,16 +205,24 @@ Then restart Home Assistant.
 
 ---
 
-## Initial Noonlight Setup
+# Initial Noonlight Setup
 
-You will need:
+Before configuring the integration, you should:
 
-* A Noonlight account
+1. Create a Noonlight account
+2. Create or obtain Noonlight developer/API credentials
+3. Determine whether you will initially test using Sandbox or Production
+4. Decide how you want Home Assistant automations to control testing vs live dispatch behavior
+
+You will typically need:
+
+* Noonlight Client ID
+* Noonlight Client Secret
 * A U.S.-based phone number
+* Address information
+* PIN information
 * Home Assistant
 * Internet connectivity
-
-The original integration architecture uses Konnected-hosted token broker endpoints to obtain Noonlight access tokens.
 
 Depending on your setup, you may use:
 
@@ -194,9 +230,11 @@ Depending on your setup, you may use:
 * Sandbox Noonlight Dispatch API endpoints
 * Sandbox server token overrides
 
+The original integration architecture uses Konnected-hosted token broker endpoints to obtain Noonlight access tokens.
+
 ---
 
-## Configuration
+# Configuration
 
 After installation:
 
@@ -207,39 +245,39 @@ After installation:
 
 You will be prompted for:
 
-### Noonlight ID
+## Noonlight Client ID
 
-Noonlight integration identifier.
+Client identifier associated with your Noonlight application.
 
-### Noonlight Secret
+## Noonlight Client Secret
 
-Secret associated with the Noonlight integration ID.
+Client secret associated with your Noonlight application.
 
-### Noonlight API Endpoint
+## Noonlight API Endpoint
 
 Examples:
 
-Production:
+### Production
 
 ```text
 https://api.noonlight.com/platform/v1
 ```
 
-Sandbox:
+### Sandbox
 
 ```text
 https://api-sandbox.noonlight.com/dispatch/v1
 ```
 
-### Token Endpoint
+## Token Endpoint
 
-Examples:
+Example:
 
 ```text
 https://noonlight.konnected.io/ha/token
 ```
 
-### Address Information
+## Address Information
 
 * Address line 1
 * Address line 2
@@ -247,7 +285,7 @@ https://noonlight.konnected.io/ha/token
 * State
 * ZIP code
 
-### Contact Information
+## Contact Information
 
 * Name
 * Phone number
@@ -257,10 +295,75 @@ Optional:
 
 * Secondary contact
 * Secondary phone
+* Additional instructions
 
 ---
 
-## Service: noonlight.create_alarm
+# Recommended Home Assistant Helper Architecture
+
+Many advanced Home Assistant users may prefer to separate TEST and LIVE dispatch behavior using Home Assistant helpers and automations.
+
+A common approach is to create Home Assistant helper entities such as:
+
+* Alarm Mode selector
+* Noonlight Endpoint Mode selector
+* Sandbox token helper
+* Production token helper
+* Notification routing helpers
+* Dispatch enable/disable switches
+
+Example helper concepts:
+
+```text
+Alarm Mode:
+  LIVE
+  Test
+  Test Sensors/Messages
+
+Noonlight Endpoint Mode:
+  Production
+  Sandbox
+```
+
+Home Assistant automations can then dynamically control:
+
+* Sandbox vs production API endpoints
+* Sandbox server token overrides
+* Notification routing behavior
+* SMS and voice testing workflows
+* Whether Noonlight dispatches are actually permitted
+* Dispatch logging and escalation workflows
+
+This allows Home Assistant users to:
+
+* Safely test alarm automations without live dispatches
+* Validate notification routing
+* Verify sensor behavior
+* Simulate intrusion, fire, and medical workflows
+* Separate sandbox and production credentials
+* Implement fail-closed production safety protections
+* Create household-specific escalation workflows
+* Add centralized logging and diagnostics
+
+Example override concepts:
+
+```yaml
+api_endpoint_override:
+token_endpoint_override:
+server_token_override:
+```
+
+when calling:
+
+```yaml
+service: noonlight.create_alarm
+```
+
+This fork was specifically designed to support advanced Home Assistant automation-driven workflows where dispatch behavior, notification routing, testing modes, and safety protections are controlled externally by Home Assistant logic rather than hardcoded directly inside the integration.
+
+---
+
+# Service: noonlight.create_alarm
 
 This integration exposes the following Home Assistant service:
 
@@ -270,7 +373,9 @@ noonlight.create_alarm
 
 ---
 
-## Basic Example
+# Police Alarm Examples
+
+## Simple Police Example
 
 ```yaml
 service: noonlight.create_alarm
@@ -278,9 +383,27 @@ data:
   service: police
 ```
 
+## Advanced Police Example
+
+```yaml
+service: noonlight.create_alarm
+data:
+  service: police
+  alarm_cause: Garage entry door opened while armed away
+  instructions: >
+    Residential intrusion alarm.
+    Alarm armed in Away mode.
+    Homeowner not expected on premises.
+    Garage entry door sensor triggered followed by mud room motion.
+    Rear driveway accessible from side street.
+    Contact homeowner before dispatch if possible.
+```
+
 ---
 
-## Fire Alarm Example
+# Fire Alarm Examples
+
+## Simple Fire Example
 
 ```yaml
 service: noonlight.create_alarm
@@ -288,9 +411,25 @@ data:
   service: fire
 ```
 
+## Advanced Fire Example
+
+```yaml
+service: noonlight.create_alarm
+data:
+  service: fire
+  alarm_cause: Basement smoke detector activated
+  instructions: >
+    Smoke detector triggered in basement utility room near furnace.
+    Occupants evacuating structure.
+    Rear basement entrance accessible from driveway.
+    Homeowner responding.
+```
+
 ---
 
-## Medical Alarm Example
+# Medical Alarm Examples
+
+## Simple Medical Example
 
 ```yaml
 service: noonlight.create_alarm
@@ -298,9 +437,24 @@ data:
   service: medical
 ```
 
+## Advanced Medical Example
+
+```yaml
+service: noonlight.create_alarm
+data:
+  service: medical
+  alarm_cause: Medical alert button pressed by homeowner
+  instructions: >
+    Elderly homeowner requested medical assistance.
+    Front door may be unlocked for responders.
+    Emergency contact responding to property.
+```
+
 ---
 
-## Extended Dispatch Example
+# Extended Dispatch Examples
+
+## Simple Extended Example
 
 ```yaml
 service: noonlight.create_alarm
@@ -310,9 +464,27 @@ data:
   instructions: Residential alarm. Contact homeowner before dispatch.
 ```
 
+## Advanced Extended Example
+
+```yaml
+service: noonlight.create_alarm
+data:
+  service: police
+  alarm_cause: Multiple intrusion sensors triggered while armed away
+  instructions: >
+    Alarm armed in Away mode.
+    Basement window vibration sensor triggered followed by family room motion.
+    No occupants expected home.
+    Exterior cameras active.
+    Contact homeowner before dispatch if possible.
+    Responding officers may use front driveway entrance.
+```
+
 ---
 
-## Sandbox Testing Example
+# Sandbox Testing Examples
+
+## Simple Sandbox Example
 
 ```yaml
 service: noonlight.create_alarm
@@ -325,25 +497,45 @@ data:
   server_token_override: YOUR_SANDBOX_SERVER_TOKEN
 ```
 
+## Advanced Sandbox Example
+
+```yaml
+service: noonlight.create_alarm
+data:
+  service: police
+  alarm_cause: TEST intrusion workflow validation
+  instructions: >
+    TEST ONLY.
+    DO NOT DISPATCH.
+    Validating Home Assistant automation routing,
+    Twilio notification sequencing,
+    webhook handling,
+    dispatch event logging,
+    and production safety protections.
+  api_endpoint_override: https://api-sandbox.noonlight.com/dispatch/v1
+  token_endpoint_override: https://noonlight.konnected.io/ha/token
+  server_token_override: YOUR_SANDBOX_SERVER_TOKEN
+```
+
 ---
 
-## Sandbox vs Production
+# Sandbox vs Production
 
 This fork adds explicit protections intended to reduce accidental production dispatches.
 
-### Sandbox Safety Checks
+## Sandbox Safety Checks
 
 If the integration detects a sandbox API endpoint but no sandbox server token override is supplied, the dispatch will fail closed.
 
-### Production Safety Checks
+## Production Safety Checks
 
 If the integration detects a production API endpoint while a sandbox server token override is present, the dispatch will fail closed.
 
-These protections were added specifically to reduce the chance of accidental live dispatches during testing.
+These protections were added specifically to reduce accidental live dispatches during testing.
 
 ---
 
-## Webhook Support
+# Webhook Support
 
 This fork includes optional webhook receiver support.
 
@@ -364,9 +556,11 @@ Webhook payload handling is intentionally minimal by default and is intended to 
 
 ---
 
-## Example Home Assistant Automations
+# Example Home Assistant Automations
 
-### Trigger Noonlight From Alarmo
+## Trigger Noonlight From Alarmo
+
+### Simple Example
 
 ```yaml
 automation:
@@ -383,9 +577,34 @@ automation:
           alarm_cause: Alarmo intrusion alarm triggered
 ```
 
+### Advanced Example
+
+```yaml
+automation:
+  - alias: Trigger Noonlight From Alarmo
+    trigger:
+      - platform: state
+        entity_id: alarm_control_panel.home_alarm
+        to: triggered
+
+    action:
+      - service: noonlight.create_alarm
+        data:
+          service: police
+          alarm_cause: >
+            Alarm armed Away. Mud room storm door opened followed by kitchen motion.
+          instructions: >
+            Residential intrusion alarm.
+            Homeowner not expected on premises.
+            Exterior cameras active.
+            Contact homeowner before dispatch if possible.
+```
+
 ---
 
-### Smoke Alarm Example
+## Smoke Alarm Example
+
+### Simple Example
 
 ```yaml
 automation:
@@ -402,11 +621,64 @@ automation:
           alarm_cause: Smoke alarm detected
 ```
 
+### Advanced Example
+
+```yaml
+automation:
+  - alias: Trigger Noonlight Fire Dispatch
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.basement_smoke_detector
+        to: "on"
+
+    action:
+      - service: noonlight.create_alarm
+        data:
+          service: fire
+          alarm_cause: Basement utility room smoke detector activated
+          instructions: >
+            Smoke detector activated near furnace and electrical panel.
+            Occupants evacuating structure.
+            Rear basement entrance accessible from driveway.
+            Homeowner responding.
+```
+
 ---
 
-## Recommended Testing Workflow
+# Example Advanced Alarm Routing Architecture
 
-### 1. Configure Sandbox Mode First
+Many advanced Home Assistant users may choose to integrate this fork alongside:
+
+* Alarmo
+* Twilio
+* Home Assistant helpers
+* InfluxDB
+* Grafana
+* Persistent notifications
+* Logbook
+* Voice call automations
+* SMS escalation workflows
+* Household notification routing
+
+Example advanced workflows may include:
+
+* TEST vs LIVE dispatch modes
+* Sandbox vs production endpoint separation
+* Dispatch deduplication windows
+* Family escalation sequencing
+* Voice call escalation
+* SMS queueing
+* Inbound webhook event handling
+* Dashboard-based operational monitoring
+* Automated dispatch logging and auditing
+
+This integration is intentionally designed to integrate cleanly with broader Home Assistant automation ecosystems.
+
+---
+
+# Recommended Testing Workflow
+
+## 1. Configure Sandbox Mode First
 
 Before enabling production dispatching, thoroughly test your complete workflow in the Noonlight Sandbox environment.
 
@@ -425,12 +697,13 @@ Recommended Sandbox validation steps:
 * Verify notification routing
 * Verify logging and diagnostics
 * Verify fail-safe behavior during errors
+* Verify webhook event handling
 
-### 2. Only Then Test Production Carefully
+## 2. Only Then Test Production Carefully
 
 Once Sandbox testing is fully validated, production testing should be approached cautiously.
 
-Repeat the same categories of testing above in production, while carefully coordinating with all affected household members, emergency contacts, and monitoring workflows.
+Repeat the same categories of testing above in production while carefully coordinating with all affected household members, emergency contacts, and monitoring workflows.
 
 Always notify anyone who may receive alarm calls before testing.
 
@@ -438,7 +711,29 @@ Always notify anyone who may receive SMS alerts before testing.
 
 ---
 
-## Notification Routing and Dedicated Alarm Numbers
+# Recommended Production Readiness Checklist
+
+Before relying on LIVE dispatch behavior, verify:
+
+* Address information is correct
+* PIN information is correct
+* Phone numbers are correct
+* Sandbox testing completed successfully
+* SMS notifications work correctly
+* Voice call notifications work correctly
+* Webhook handling works correctly
+* Home Assistant automations behave correctly
+* TEST vs LIVE helper protections work correctly
+* Sandbox vs production protections work correctly
+* Deduplication logic works correctly
+* Internet connectivity is stable
+* Household members understand testing procedures
+* Notification escalation routing works correctly
+* Alarm cancellation workflows are understood
+
+---
+
+# Notification Routing and Dedicated Alarm Numbers
 
 Many users may prefer to use a dedicated phone number and messaging workflow for alarm-related notifications and testing.
 
@@ -462,7 +757,9 @@ Using a dedicated alarm notification number can provide several advantages:
 
 This integration is intentionally designed to work well alongside Home Assistant automation systems that provide additional notification routing, escalation, logging, and diagnostic functionality.
 
-## Logging and Diagnostics
+---
+
+# Logging and Diagnostics
 
 This fork is intended to integrate cleanly with:
 
@@ -479,7 +776,7 @@ The integration intentionally fires Home Assistant events instead of forcing har
 
 ---
 
-## Known Limitations
+# Known Limitations
 
 * Requires internet connectivity
 * Requires Noonlight service availability
@@ -493,7 +790,7 @@ The integration intentionally fires Home Assistant events instead of forcing har
 
 ---
 
-## Credits
+# Credits
 
 Original integration concept and implementation:
 
@@ -504,39 +801,39 @@ This repository is a community-maintained fork intended to modernize and extend 
 
 ---
 
-## Related Links
+# Related Links
 
-### Noonlight
+## Noonlight
 
 [https://noonlight.com](https://noonlight.com)
 
-### Noonlight API Docs
+## Noonlight API Docs
 
 [https://docs.noonlight.com](https://docs.noonlight.com)
 
-### Konnected
+## Konnected
 
 [https://konnected.io](https://konnected.io)
 
-### Home Assistant
+## Home Assistant
 
 [https://www.home-assistant.io](https://www.home-assistant.io)
 
 ---
 
-## Terms and Liability
+# Terms and Liability
 
 Please read and understand the following:
 
-### Noonlight Terms
+## Noonlight Terms
 
 [https://noonlight.com/terms](https://noonlight.com/terms)
 
-### Konnected Terms
+## Konnected Terms
 
 [https://konnected.io/terms](https://konnected.io/terms)
 
-### Home Assistant Terms
+## Home Assistant Terms
 
 [https://www.home-assistant.io/tos/](https://www.home-assistant.io/tos/)
 
