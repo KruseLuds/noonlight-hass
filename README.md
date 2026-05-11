@@ -200,11 +200,11 @@ This integration fires Home Assistant events that can be used in automations, lo
 
 ### `noonlight_alarm_attempted`
 
-Fired whenever the integration attempts to create a Noonlight alarm.
+Fired whenever the integration attempts to create (trigger) a Noonlight alarm.
 
 ### `noonlight_alarm_created`
 
-Fired when Noonlight successfully creates an active alarm.
+Fired when the external Noonlight service successfully creates an active alarm in repsonse to the above creation.
 
 ### `noonlight_alarm_failed`
 
@@ -212,7 +212,7 @@ Fired when alarm creation fails.
 
 ### `noonlight_webhook_received`
 
-Fired whenever the integration receives an inbound Noonlight webhook.
+Fired whenever the integration receives an inbound webhook from the external Noonlight service.
 
 ## Recommended Home Assistant Helper Architecture
 
