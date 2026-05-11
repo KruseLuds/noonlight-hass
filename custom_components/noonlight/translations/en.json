@@ -7,7 +7,7 @@
     },
     "step": {
       "user": {
-        "title": "Configure the Noonlight Alarm",
+        "title": "Configure the Noonlight Enhanced",
         "data": {
           "name": "Name",
           "id": "Noonlight ID",
@@ -17,7 +17,7 @@
           "location_mode": "Location Mode"        }
       },
       "address": {
-        "title": "Configure the Noonlight Alarm - Address",
+        "title": "Configure the Noonlight Enhanced - Address",
         "data": {
           "address1": "Address",
           "address2": "Address 2",
@@ -27,14 +27,14 @@
         }
       },
       "latlong": {
-        "title": "Configure the Noonlight Alarm - Latitude/Longitude",
+        "title": "Configure the Noonlight Enhanced - Latitude/Longitude",
         "data": {
           "latitude": "Latitude",
           "longitude": "Longitude"
         }
       },
       "reconfigure_confirm": {
-        "title": "Reconfigure the Noonlight Alarm",
+        "title": "Reconfigure the Noonlight Enhanced",
         "data": {
           "name": "Name",
           "id": "Noonlight ID",
@@ -48,7 +48,7 @@
         }
       },
       "reconfig_address": {
-        "title": "Reconfigure the Noonlight Alarm - Address",
+        "title": "Reconfigure the Noonlight Enhanced - Address",
         "data": {
           "address1": "Address",
           "address2": "Address 2",
@@ -58,7 +58,7 @@
         }
       },
       "reconfig_latlong": {
-        "title": "Reconfigure the Noonlight Alarm - Latitude/Longitude",
+        "title": "Reconfigure the Noonlight Enhanced - Latitude/Longitude",
         "data": {
           "latitude": "Latitude",
           "longitude": "Longitude"
