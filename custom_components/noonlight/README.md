@@ -1,4 +1,4 @@
-# Noonlight for Home Assistant
+# Noonlight Enhanced for Home Assistant
 
 ## Overview
 
