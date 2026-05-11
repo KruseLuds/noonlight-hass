@@ -67,7 +67,7 @@ class NoonlightSwitch(SwitchEntity):
         self._attr_unique_id = f"{self._alarm_type.lower()}_{Platform.SWITCH}_{
             self.noonlight.config.get('id', '')}"
         self._attr_name = DEFAULT_NAME
-        self._attr_icon = "mdi:police-badge"
+        self._attr_icon = "mdi:shield-home"
         self._state = False
 
     @property
