@@ -145,7 +145,7 @@ After installation:
 1. Open Home Assistant.
 2. Go to Settings → Devices & Services.
 3. Add Integration.
-4. Search for Noonlight.
+4. Search for Noonlight Enhanced.
 
 The configuration flow is organized to make setup easier:
 
@@ -204,7 +204,7 @@ Fired whenever the integration attempts to create (trigger) a Noonlight alarm.
 
 ### `noonlight_alarm_created`
 
-Fired when the external Noonlight service successfully creates an active alarm in repsonse to the above creation.
+Fired when the external Noonlight service successfully creates an active alarm in response to the above creation.
 
 ### `noonlight_alarm_failed`
 
