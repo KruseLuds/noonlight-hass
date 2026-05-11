@@ -96,39 +96,42 @@ async def _async_build_noonlight_schema(
 async def _async_build_v2_dispatch_schema(
     hass: HomeAssistant, user_input: dict | None, default_dict: dict
 ) -> Any:
-    """Build schema for optional V2 dispatch metadata."""
+    """Build schema for optional V2 dispatch metadata.
+
+    Sandbox developer/server token is intentionally not shown here.
+    Sandbox token testing is handled by Home Assistant helpers and service-call overrides.
+    """
     if user_input is None:
         user_input = {}
 
-    def _get_default(key: str, fallback_default: Any = None) -> Any:
-        return user_input.get(key, default_dict.get(key, fallback_default))
+    def _get_text_default(key: str, fallback_default: Any = "") -> str:
+        value = user_input.get(key, default_dict.get(key, fallback_default))
+        if value is None:
+            return ""
+        return str(value)
 
     return vol.Schema(
         {
             vol.Optional(
                 CONF_PHONE,
-                default=_get_default(CONF_PHONE),
+                default=_get_text_default(CONF_PHONE),
             ): selector.TextSelector(selector.TextSelectorConfig()),
             vol.Optional(
                 CONF_PIN,
-                default=_get_default(CONF_PIN),
+                default=_get_text_default(CONF_PIN),
             ): selector.TextSelector(selector.TextSelectorConfig()),
             vol.Optional(
                 CONF_NAME2,
-                default=_get_default(CONF_NAME2),
+                default=_get_text_default(CONF_NAME2),
             ): selector.TextSelector(selector.TextSelectorConfig()),
             vol.Optional(
                 CONF_PHONE2,
-                default=_get_default(CONF_PHONE2),
+                default=_get_text_default(CONF_PHONE2),
             ): selector.TextSelector(selector.TextSelectorConfig()),
             vol.Optional(
                 CONF_INSTRUCTIONS,
-                default=_get_default(CONF_INSTRUCTIONS),
+                default=_get_text_default(CONF_INSTRUCTIONS),
             ): selector.TextSelector(selector.TextSelectorConfig(multiline=True)),
-            vol.Optional(
-                CONF_DEV_TOKEN,
-                default=_get_default(CONF_DEV_TOKEN),
-            ): selector.TextSelector(selector.TextSelectorConfig()),
         }
     )
 

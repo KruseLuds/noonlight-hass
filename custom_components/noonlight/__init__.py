@@ -78,7 +78,6 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_NAME2): cv.string,
                 vol.Optional(CONF_PHONE2): cv.string,
                 vol.Optional(CONF_INSTRUCTIONS): cv.string,
-                vol.Optional(CONF_DEV_TOKEN): cv.string,
                 vol.Inclusive(
                     CONF_LATITUDE, "coordinates", "Include both latitude and longitude"
                 ): cv.latitude,
