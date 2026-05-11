@@ -1,8 +1,8 @@
 {
-  "title": "Noonlight Alarm",
+  "title": "Noonlight Enhanced",
   "config": {
     "abort": {
-      "already_configured": "Already Configured: Only 1 instance of Noonlight Alarm permitted",
+      "already_configured": "Already Configured: Only 1 instance of Noonlight Enhanced permitted",
       "reconfigure_successful": "Reconfigure Successful"
     },
     "step": {
