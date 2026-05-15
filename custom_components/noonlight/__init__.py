@@ -1,4 +1,27 @@
-"""Noonlight integration for Home Assistant."""
+"""Noonlight integration for Home Assistant.
+
+This module contains the runtime portion of the Noonlight integration.
+It is responsible for:
+
+- importing YAML configuration into a config entry
+- registering the ``noonlight.create_alarm`` Home Assistant service
+- registering the Noonlight webhook endpoint
+- renewing Noonlight access tokens on demand
+- creating Noonlight alarm dispatch requests
+- firing Home Assistant events that make dispatch attempts observable
+
+This fork intentionally adds runtime endpoint selection and additional event
+visibility so Home Assistant automations can safely route between sandbox and
+production behavior without changing integration configuration each time.
+
+Token renewal design:
+
+The integration does not perform background token refreshes while idle. Tokens
+are renewed on demand immediately before creating an alarm. This avoids
+unnecessary token endpoint traffic and ensures the token endpoint used for a
+dispatch matches the runtime endpoint selected by the Home Assistant service
+call.
+"""
 
 import logging
 from datetime import timedelta
@@ -17,7 +40,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.event import async_track_point_in_utc_time
 from homeassistant.helpers.issue_registry import IssueSeverity, async_create_issue
 from homeassistant.helpers.typing import ConfigType
 
@@ -50,15 +72,21 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-TOKEN_CHECK_INTERVAL = timedelta(minutes=15)
 
+# Home Assistant event names used for observability and fallback automations.
+# These events are intentionally separate from dispatcher signals so YAML
+# automations can listen for dispatch lifecycle events directly.
 EVENT_NOONLIGHT_ALARM_ATTEMPTED = "noonlight_alarm_attempted"
 EVENT_NOONLIGHT_ALARM_FAILED = "noonlight_alarm_failed"
 EVENT_NOONLIGHT_WEBHOOK_RECEIVED = "noonlight_webhook_received"
 
+# Stable webhook ID registered with Home Assistant for Noonlight dispatch events.
 WEBHOOK_ID = "noonlight_dispatch_events"
 
 
+# YAML configuration schema retained for import/backward compatibility. Newer
+# Home Assistant integrations prefer config entries, so async_setup imports YAML
+# config into a config entry and raises a deprecation repair warning.
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
@@ -92,11 +120,19 @@ CONFIG_SCHEMA = vol.Schema(
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up from YAML."""
+    """Set up from YAML and import the YAML config into a config entry.
+
+    Home Assistant is moving away from YAML setup for integrations. This path
+    is kept so existing installations can still start, while Home Assistant is
+    also asked to create/import a config entry from the YAML values.
+    """
     if DOMAIN not in config:
         return True
 
     _LOGGER.debug("[async_setup] config: %s", config[DOMAIN])
+
+    # Inform the user that YAML setup is deprecated. The integration continues
+    # to work, but users should eventually migrate to config-entry setup.
     async_create_issue(
         hass,
         HOMEASSISTANT_DOMAIN,
@@ -113,6 +149,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         },
     )
 
+    # Import YAML configuration asynchronously into Home Assistant's config
+    # entry flow. This preserves older configuration while aligning with the
+    # modern Home Assistant setup model.
     hass.async_create_task(
         hass.config_entries.flow.async_init(
             DOMAIN,
@@ -124,7 +163,16 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up from a config entry."""
+    """Set up the Noonlight integration from a config entry.
+
+    This creates the integration runtime object, registers Home Assistant
+    services, registers the webhook handler, and loads the integration
+    platforms.
+
+    This fork intentionally does not schedule background token renewal. The
+    ``create_alarm`` flow force-renews the token immediately before dispatch,
+    using the token endpoint chosen by that service call.
+    """
 
     _LOGGER.debug("[init async_setup_entry] entry: %s", entry.data)
     noonlight_integration = NoonlightIntegration(hass, entry.data)
@@ -132,7 +180,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = noonlight_integration
 
     async def handle_create_alarm_service(call):
-        """Create a Noonlight alarm from a Home Assistant service call."""
+        """Create a Noonlight alarm from a Home Assistant service call.
+
+        This is the Home Assistant service entry point for automations/scripts:
+        ``noonlight.create_alarm``.
+
+        The endpoint and token override fields allow a caller to route a single
+        dispatch attempt to sandbox or production without changing the saved
+        integration configuration. The server token override is used for the
+        Noonlight sandbox dispatch endpoint only.
+        """
         service = call.data.get("service", None)
         alarm_cause = call.data.get(ATTR_ALARM_CAUSE)
         instructions = call.data.get(ATTR_INSTRUCTIONS)
@@ -154,10 +211,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     async def handle_noonlight_webhook(hass, webhook_id, request):
-        """Receive Noonlight webhook events."""
+        """Receive Noonlight webhook events and forward them to Home Assistant.
+
+        Noonlight may send dispatch status callbacks. The integration does not
+        try to interpret every possible payload here. Instead, it fires a Home
+        Assistant event containing the raw payload so YAML automations can log,
+        notify, or inspect it without requiring a code change for each payload
+        shape.
+        """
         try:
             payload = await request.json()
         except Exception:
+            # If the webhook body is not valid JSON, preserve the raw body so
+            # troubleshooting still has the original inbound content.
             payload = {"raw_body": await request.text()}
 
         event_data = {
@@ -179,34 +245,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         handle_noonlight_webhook,
     )
 
-    async def check_api_token(now):
-        """Check if the current API token has expired and renew if so."""
-        next_check_interval = TOKEN_CHECK_INTERVAL
-
-        result = await noonlight_integration.check_api_token()
-
-        if not result:
-            _LOGGER.error("API token failed renewal, retrying in 3 min")
-            check_api_token.fail_count += 1
-            next_check_interval = timedelta(minutes=3)
-        else:
-            if check_api_token.fail_count > 0:
-                _LOGGER.info("Noonlight API token renewed successfully after failure.")
-            check_api_token.fail_count = 0
-
-        async_track_point_in_utc_time(
-            hass, check_api_token, dt_util.utcnow() + next_check_interval
-        )
-
-    check_api_token.fail_count = 0
-    async_track_point_in_utc_time(hass, check_api_token, dt_util.utcnow())
-
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
+    """Unload the Noonlight config entry and unregister runtime resources."""
     _LOGGER.info("Unloading: %s", entry.data)
 
     webhook.async_unregister(hass, WEBHOOK_ID)
@@ -219,20 +263,34 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 class NoonlightException(HomeAssistantError):
-    """General exception for Noonlight Integration."""
+    """General exception for Noonlight integration failures."""
 
     pass
 
 
 class NoonlightIntegration:
-    """Integration for interacting with Noonlight from Home Assistant."""
+    """Runtime helper for communicating with Noonlight.
+
+    The object owns the aiohttp session, Noonlight client, token state, and
+    current alarm object. It also centralizes the custom endpoint override and
+    Home Assistant event behavior used by this fork.
+    """
 
     def __init__(self, hass, conf):
-        """Initialize NoonlightIntegration."""
+        """Initialize the Noonlight runtime wrapper."""
         self.hass = hass
         self.config = conf
+
+        # Raw token response from the token broker/endpoint. The response is
+        # normalized by _set_token_response so the expires value is a datetime.
         self._access_token_response = {}
+
+        # Last alarm object returned by the Noonlight client. This is used for
+        # status checks and for adding a secondary person on dispatch alarms.
         self._alarm = None
+
+        # Renew when less than two hours remain if a caller uses non-forced
+        # token checking. Dispatch calls force renewal before creating an alarm.
         self._time_to_renew = timedelta(hours=2)
         self._websession = async_get_clientsession(self.hass)
         self.client = nl.NoonlightClient(
@@ -240,6 +298,9 @@ class NoonlightIntegration:
         )
         self.client.set_base_url(self.config[CONF_API_ENDPOINT])
 
+        # Store address components once for payload construction. The dispatch
+        # endpoint uses the address-based payload, while the older/default flow
+        # can fall back to coordinates if no address is configured.
         self.addline1 = self.config.get(CONF_ADDRESS_LINE1, "")
         self.addline2 = self.config.get(CONF_ADDRESS_LINE2, "")
         self.addcity = self.config.get(CONF_CITY, "")
@@ -248,39 +309,51 @@ class NoonlightIntegration:
 
     @property
     def latitude(self):
-        """Return latitude from the Home Assistant configuration."""
+        """Return latitude from integration config or Home Assistant config."""
         return self.config.get(CONF_LATITUDE, self.hass.config.latitude)
 
     @property
     def longitude(self):
-        """Return longitude from the Home Assistant configuration."""
+        """Return longitude from integration config or Home Assistant config."""
         return self.config.get(CONF_LONGITUDE, self.hass.config.longitude)
 
     @property
     def access_token(self):
-        """Return the access token from the Noonlight Configuration."""
+        """Return the currently stored Noonlight access token."""
         return self._access_token_response.get("token")
 
     @property
     def access_token_expiry(self):
-        """Return the timestamp when the access token expires."""
+        """Return the timestamp when the current access token expires."""
         return self._access_token_response.get("expires", dt_util.utc_from_timestamp(0))
 
     @property
     def access_token_expires_in(self):
-        """Return the timedelta until the token expires."""
+        """Return the remaining lifetime of the current access token."""
         return self.access_token_expiry - dt_util.utcnow()
 
     @property
     def should_token_be_renewed(self):
-        """Return true if the token needs to be renewed."""
+        """Return true when there is no token or it is close to expiring."""
         return (
             self.access_token is None
             or self.access_token_expires_in <= self._time_to_renew
         )
 
     async def check_api_token(self, force_renew=False, token_endpoint_override=None):
-        """Check if Noonlight API token needs renewal and renew if so."""
+        """Check whether the Noonlight API token needs renewal and renew it.
+
+        Args:
+            force_renew: Force a token renewal even if the current token has
+                sufficient lifetime remaining. Dispatch calls use this to avoid
+                sending an alarm with stale or environment-mismatched credentials.
+            token_endpoint_override: Optional token endpoint to use for this
+                renewal. This is how service calls can choose production vs
+                sandbox token behavior at runtime.
+
+        Returns:
+            True when a valid token is available, otherwise False.
+        """
         _LOGGER.debug(
             "Checking if token needs renewal, expires: {0:.1f}h".format(
                 self.access_token_expires_in.total_seconds() / 3600.0
@@ -293,6 +366,8 @@ class NoonlightIntegration:
                 path = token_endpoint_override or self.config.get(CONF_TOKEN_ENDPOINT)
 
                 if token_endpoint_override:
+                    # Log at warning level because endpoint overrides are powerful
+                    # and intentional. This makes routing mistakes visible in logs.
                     _LOGGER.warning(
                         "Using overridden Noonlight token endpoint: %s",
                         token_endpoint_override,
@@ -326,23 +401,28 @@ class NoonlightIntegration:
         return True
 
     def _set_token_response(self, token_response):
-        """Store the latest token response."""
+        """Normalize, store, and apply a token endpoint response."""
         expires = dt_util.parse_datetime(token_response["expires"])
         if expires is not None:
             token_response["expires"] = expires
         else:
+            # Failing closed is safer than pretending an invalid expiry is valid.
             token_response["expires"] = dt_util.utc_from_timestamp(0)
 
         self.client.set_token(token=token_response.get("token"))
         self._access_token_response = token_response
 
     async def update_alarm_status(self):
-        """Update the status of the current alarm."""
+        """Return the status of the last alarm object, if one exists."""
         if self._alarm is not None:
             return await self._alarm.get_status()
 
     def _fire_noonlight_event(self, event_type, event_data):
-        """Fire a Home Assistant event for Noonlight dispatch status."""
+        """Fire a Home Assistant event for Noonlight dispatch observability.
+
+        These events are used by Home Assistant automations for logging,
+        dashboards, and fallback escalation when dispatch fails.
+        """
         self.hass.bus.async_fire(event_type, event_data)
 
     async def create_alarm(
@@ -354,12 +434,32 @@ class NoonlightIntegration:
         token_endpoint_override=None,
         server_token_override=None,
     ):
-        """Create a new alarm."""
+        """Create a Noonlight alarm.
+
+        This method supports both the original integration behavior and the
+        dispatch-specific flow used by this fork.
+
+        Runtime override behavior:
+        - api_endpoint_override chooses the API base URL for this dispatch.
+        - token_endpoint_override chooses the token renewal endpoint.
+        - server_token_override supplies a sandbox server token for sandbox
+          dispatch testing.
+
+        Safety behavior:
+        - Sandbox dispatch requires a sandbox server token.
+        - Production dispatch rejects sandbox server token overrides.
+        - Token renewal failure fires a Home Assistant failure event and stops
+          the dispatch attempt.
+        - Any API exception fires a Home Assistant failure event.
+        """
         services = {}
         for alarm_type in alarm_types or ():
             if alarm_type in CONST_NOONLIGHT_SERVICE_TYPES:
                 services[alarm_type] = True
 
+        # Resolve runtime endpoints. Overrides are used by the service caller,
+        # usually a Home Assistant script, to switch between sandbox and
+        # production without changing the saved integration configuration.
         api_endpoint = (api_endpoint_override or self.config.get(CONF_API_ENDPOINT, "")).strip()
         token_endpoint = (token_endpoint_override or self.config.get(CONF_TOKEN_ENDPOINT, "")).strip()
         clean_server_token_override = (
@@ -368,6 +468,8 @@ class NoonlightIntegration:
             else ""
         )
 
+        # Environment detection is intentionally endpoint-based so it follows
+        # the actual URL being used for this dispatch attempt.
         is_sandbox = "api-sandbox.noonlight.com" in api_endpoint
         is_production = "api.noonlight.com" in api_endpoint and not is_sandbox
 
@@ -422,9 +524,13 @@ class NoonlightIntegration:
         self.client.set_base_url(api_endpoint)
 
         if clean_server_token_override:
+            # Sandbox dispatch can use a provided server token directly. This is
+            # intentionally separate from production token renewal.
             _LOGGER.warning("Using overridden Noonlight server token")
             self.client.set_token(token=clean_server_token_override)
         else:
+            # Production and non-server-token flows must renew through the
+            # configured or overridden token endpoint before dispatch.
             token_ok = await self.check_api_token(
                 force_renew=True,
                 token_endpoint_override=token_endpoint,
@@ -439,10 +545,14 @@ class NoonlightIntegration:
                 return False
 
         try:
+            # Optional developer token compatibility. This preserves the existing
+            # behavior while allowing sandbox server-token dispatch to bypass it.
             if self.config.get(CONF_DEV_TOKEN) and not clean_server_token_override:
                 self.client.set_token(token=self.config.get(CONF_DEV_TOKEN))
 
             if "dispatch" in api_endpoint:
+                # Dispatch endpoint payload. This includes address, contact,
+                # PIN, service selection, and optional operator instructions.
                 alarm_body = {
                     "location": {
                         "address": {
@@ -460,6 +570,8 @@ class NoonlightIntegration:
 
                 dispatch_instructions = instructions or self.config.get(CONF_INSTRUCTIONS)
 
+                # Put the trigger cause at the front of the instructions so a
+                # Noonlight operator can see the important sensor context first.
                 if alarm_cause:
                     if dispatch_instructions:
                         dispatch_instructions = (
@@ -478,6 +590,8 @@ class NoonlightIntegration:
 
                 self._alarm = await self.client.create_alarm(body=alarm_body)
 
+                # Optional second contact. Some dispatch flows support adding a
+                # secondary person after the alarm is created.
                 if self.config.get(CONF_NAME2) and self.config.get(CONF_PHONE2):
                     await self.client._post(
                         f"{self.client.alarms_url}/{self._alarm.id}/people",
@@ -490,6 +604,9 @@ class NoonlightIntegration:
                         ],
                     )
             else:
+                # Original/non-dispatch style payload. If an address is
+                # configured, use it. Otherwise fall back to Home Assistant
+                # coordinates or configured coordinates.
                 if len(self.addline1) > 0:
                     alarm_body = {
                         "location.address": {

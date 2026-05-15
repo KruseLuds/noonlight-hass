@@ -1,10 +1,50 @@
+# ============================================================
+# Noonlight Home Assistant service definitions
+#
+# This integration exposes:
+#
+#   noonlight.create_alarm
+#
+# This fork extends the original integration with:
+#
+# - runtime API endpoint overrides
+# - runtime token endpoint overrides
+# - optional sandbox server token override
+# - alarm cause metadata
+# - runtime operator instructions
+#
+# Runtime override behavior:
+#
+# api_endpoint:
+#   Overrides the Noonlight API endpoint for this specific request.
+#
+# token_endpoint:
+#   Overrides the token renewal endpoint for this specific request.
+#
+# server_token_override:
+#   Supplies a sandbox server token directly for sandbox dispatch testing.
+#
+# Safety behavior:
+#
+# - sandbox dispatch requires a sandbox server token
+# - production dispatch rejects sandbox server tokens
+# - token renewal occurs only when an alarm is actually created
+#
+# alarm_cause:
+#   Prepended to operator instructions so dispatch sees the trigger first.
+#
+# instructions:
+#   Additional operator instructions for this specific alarm request.
+# ============================================================
+
 create_alarm:
   name: Create Alarm
-  description: Notifies Noonlight of an alarm with optional V2 dispatch metadata.
+  description: Create a Noonlight alarm dispatch request with optional runtime overrides and dispatch metadata.
+
   fields:
     service:
       name: Service
-      description: Service that the alarm should call.
+      description: Emergency service to request from Noonlight.
       required: true
       example: "police"
       default: "police"
@@ -14,30 +54,42 @@ create_alarm:
             - "police"
             - "fire"
             - "medical"
+
     api_endpoint:
       name: API Endpoint Override
-      description: Optional Noonlight API endpoint override for sandbox or production testing.
+      description: Optional Noonlight API endpoint override for this alarm request only.
       required: false
       example: "https://api-sandbox.noonlight.com/dispatch/v1"
       selector:
         text:
+
     token_endpoint:
       name: Token Endpoint Override
-      description: Optional Noonlight token endpoint override.
+      description: Optional token renewal endpoint override for this alarm request only.
       required: false
       example: "https://noonlight.konnected.io/ha/token"
       selector:
         text:
+
+    server_token_override:
+      name: Sandbox Server Token Override
+      description: Optional sandbox server token for sandbox dispatch testing. Do not use with production endpoints.
+      required: false
+      example: "eyJhbGciOi..."
+      selector:
+        text:
+
     alarm_cause:
       name: Alarm Cause
-      description: Human-readable alarm cause or triggering sensor detail to include in dispatch instructions.
+      description: Human-readable trigger cause, typically the sensor or event that initiated the alarm.
       required: false
       example: "Mud room storm door opened"
       selector:
         text:
+
     instructions:
       name: Instructions
-      description: Additional instructions to include with the alarm.
+      description: Additional operator instructions for this specific alarm request.
       required: false
       example: "Initial alarm setup, please call so client can verify everything is working."
       selector:

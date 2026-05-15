@@ -26,6 +26,44 @@ You are fully responsible for testing your automations, verifying dispatch behav
 
 Do not rely solely on this integration for personal safety, fire protection, medical emergencies, or property protection. Always maintain independent safety measures and test regularly.
 
+## Architecture and Design Philosophy
+
+This fork intentionally follows an automation-first, event-driven architecture.
+
+Core design principles:
+
+* Home Assistant remains the orchestration layer
+* Noonlight remains the dispatch provider
+* The integration remains transport-focused rather than policy-focused
+* Notification routing should be externalized to Home Assistant automations
+* Testing and production behavior should be explicitly controlled by the user
+* Dangerous endpoint combinations should fail closed
+
+### Event-Driven Architecture
+
+Rather than hardcoding notification behavior inside the integration, this fork emits Home Assistant events and allows users to build their own workflows for SMS, voice, dashboards, logging, escalation, and monitoring.
+
+### On-Demand Token Renewal
+
+This fork intentionally does not perform background token polling while idle.
+
+Access tokens are renewed only when an alarm is actually being created.
+
+Benefits:
+
+* no unnecessary token endpoint traffic
+* endpoint alignment with the specific runtime dispatch request
+* reduced background API noise
+* simpler operational behavior
+
+Dispatch model:
+
+Alarm requested
+-> resolve runtime endpoints
+-> renew token if required
+-> create alarm
+-> emit Home Assistant events
+
 ## What Changed in This Fork
 
 The original integration supported very minimal dispatch context, primarily police, fire, and medical dispatch requests. This fork modernizes and extends the integration so Home Assistant automations can provide much more useful context to Noonlight.
