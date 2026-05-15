@@ -58,7 +58,7 @@ async def async_setup_entry(
 
 
 class NoonlightSwitch(SwitchEntity):
-    """Noonlight Enhanced Switch."""
+    """Noonlight Dispatch Enabled."""
 
     def __init__(self, noonlight_integration):
         """Initialize the Noonlight switch."""
