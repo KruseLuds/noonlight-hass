@@ -88,10 +88,10 @@ This allows Home Assistant automations to include information such as which sens
 
 Examples:
 
-* “Mud room storm door at rear of home opened while system armed Away.”
-* “Smoke detector activated in basement utility room near furnace.”
-* “Medical alert button pressed by homeowner.”
-* “TEST ONLY. DO NOT DISPATCH.”
+* "Mud room storm door at rear of home opened while system armed Away."
+* "Smoke detector activated in basement utility room near furnace."
+* "Medical alert button pressed by homeowner."
+* "TEST ONLY. DO NOT DISPATCH."
 
 The goal is to provide monitoring operators and first responders with clearer situational awareness at the same time the alarm is created.
 
@@ -181,7 +181,7 @@ You can install and configure the integration before all production credentials 
 After installation:
 
 1. Open Home Assistant.
-2. Go to Settings → Devices & Services.
+2. Go to Settings -> Devices & Services.
 3. Add Integration.
 4. Search for Noonlight Enhanced.
 
