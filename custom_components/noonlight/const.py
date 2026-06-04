@@ -14,6 +14,13 @@ VERSION = "v1.2.0"
 DOMAIN = "noonlight"
 
 # Platforms created by this integration.
+#
+# Noonlight Enhanced intentionally keeps one lightweight switch platform loaded.
+# The switch is informational only and exists so the integration remains visible
+# and understandable in Home Assistant's Devices & Services UI.
+#
+# Real alarm dispatching is performed through the `noonlight.create_alarm`
+# Home Assistant action/service.
 PLATFORMS = [Platform.SWITCH]
 
 # Default integration identity and endpoint values.
@@ -46,7 +53,7 @@ CONST_NOONLIGHT_SERVICE_TYPES = (
     NOONLIGHT_SERVICES_MEDICAL,
 )
 
-# Dispatcher/event names used by switches and automations.
+# Dispatcher/event names used by the integration and information entity.
 EVENT_NOONLIGHT_TOKEN_REFRESHED = "noonlight_token_refreshed"
 EVENT_NOONLIGHT_ALARM_CANCELED = "noonlight_alarm_canceled"
 EVENT_NOONLIGHT_ALARM_CREATED = "noonlight_alarm_created"

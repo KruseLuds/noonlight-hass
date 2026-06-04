@@ -399,7 +399,7 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("Creating Noonlight entry from YAML import")
 
                 return self.async_create_entry(
-                    title=self._data[CONF_NAME], data=self._data
+                    title="Noonlight Enhanced", data=self._data
                 )
 
             # Continue to the correct location detail screen based on the user's
@@ -502,7 +502,7 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             #
             self._data.update(user_input)
             _LOGGER.debug("Creating Noonlight entry after dispatch metadata step")
-            return self.async_create_entry(title=self._data[CONF_NAME], data=self._data)
+            return self.async_create_entry(title="Noonlight Enhanced", data=self._data)
 
         # Show the dispatch metadata form.
         #
@@ -688,7 +688,7 @@ class NoonlightConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # entry, which is the expected Home Assistant reconfiguration flow.
             #
             _LOGGER.debug("Saving Noonlight reconfiguration changes")
-            self.hass.config_entries.async_update_entry(self._entry, data=self._data)
+            self.hass.config_entries.async_update_entry(self._entry, title="Noonlight Enhanced", data=self._data)
 
             # Reload the integration so runtime code picks up the updated config
             # entry data immediately.

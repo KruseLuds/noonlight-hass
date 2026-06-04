@@ -64,6 +64,8 @@ Alarm requested
 -> create alarm
 -> emit Home Assistant events
 
+The visible informational entity in Devices & Services is intentionally decoupled from real dispatch execution.
+
 ## What Changed in This Fork
 
 The original integration supported very minimal dispatch context, primarily police, fire, and medical dispatch requests. This fork modernizes and extends the integration so Home Assistant automations can provide much more useful context to Noonlight.
@@ -105,7 +107,7 @@ The goal is to provide monitoring operators and first responders with clearer si
 * Medical dispatch support
 * Address-based dispatch support
 * Coordinate-based dispatch support
-* Home Assistant switch entity support
+* Home Assistant informational integration entity
 * Home Assistant service support
 * Config Flow UI setup
 * Home Assistant event generation
@@ -295,6 +297,33 @@ This fork was designed to support automation-driven workflows where dispatch beh
 
 ## Service: `noonlight.create_alarm`
 
+## Integration Information Entity
+
+Noonlight Enhanced intentionally exposes a lightweight informational entity inside Home Assistant's Devices & Services UI.
+
+The entity exists to:
+
+* provide integration visibility inside Home Assistant
+* improve discoverability for users
+* preserve compatibility with Home Assistant integration UI expectations
+* provide runtime guidance and integration information
+
+The informational entity does NOT dispatch alarms.
+
+Turning the entity on simply creates a Home Assistant persistent notification explaining that real alarm dispatching should be performed through the `noonlight.create_alarm` Home Assistant action/service.
+
+This design intentionally separates:
+
+* informational UI behavior
+* runtime alarm dispatch behavior
+
+The preferred and supported dispatch interface is:
+
+```text
+noonlight.create_alarm
+```
+
+
 This integration exposes the following Home Assistant service:
 
 ```text
@@ -302,6 +331,17 @@ noonlight.create_alarm
 ```
 
 ## Police Alarm Examples
+
+Important:
+
+Do not use the informational integration entity to dispatch alarms.
+
+All supported alarm dispatch workflows should call:
+
+```yaml
+service: noonlight.create_alarm
+```
+
 
 ### Simple Police Example
 
