@@ -169,14 +169,31 @@ You will typically need:
 * A U.S.-based phone number
 * Address information or latitude/longitude information
 * PIN information
+
+You'll also need:
+
 * Home Assistant
 * Internet connectivity
 
-Depending on your setup, you may use production Noonlight Dispatch API endpoints, sandbox Noonlight Dispatch API endpoints, or sandbox server token overrides.
+### Credential Note
+
+This integration currently uses the same OAuth-based credential workflow as the original Noonlight Home Assistant integration. If you follow the original Noonlight Home Assistant setup workflow, the Konnected onboarding process provides the OAuth Client ID and Client Secret expected by this integration.
+
+Newer Noonlight developer accounts may instead expose Service Token and Webhook Secret credentials. Those are different authentication mechanisms and are not interchangeable with the OAuth Client ID and Client Secret expected by this integration.
+
+If you obtained your Noonlight account through the original Konnected setup process, you should already have the required OAuth credentials.
+
+Advanced users may optionally use production Dispatch API endpoints, sandbox Dispatch API endpoints, and sandbox server token overrides, depending on their testing and deployment requirements.
 
 The original integration architecture uses Konnected-hosted token broker endpoints to obtain Noonlight access tokens. Advanced users may also use Home Assistant helpers and service-call overrides to switch between sandbox and production workflows.
 
-You can install and configure the integration before all production credentials are finalized. However, you should not attempt LIVE dispatch until credentials, endpoint settings, address information, notification routing, and safety checks have been tested.
+You can install and configure the integration before all production credentials are finalized. However, you should not attempt LIVE dispatch until credentials, endpoint settings, address information, notification routing, and safety checks have been tested. 
+
+Sandbox testing is strongly recommended before enabling LIVE production dispatch.
+
+For instructions on obtaining the required OAuth credentials, see the original Noonlight Home Assistant setup guide:
+
+https://github.com/konnected-io/noonlight-hass#initial-set-up
 
 ## Configuration and Reconfiguration
 
