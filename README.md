@@ -233,16 +233,28 @@ You may be prompted for:
 * Secondary contact information
 * Additional instructions
 
-Production API endpoint example:
+### Dispatch API Endpoints
+
+Although the enhanced dispatch payload supports fields such as `alarm_cause` and `instructions`, both production and sandbox dispatch endpoints currently use `/dispatch/v1` in the URL.
+
+Production dispatch endpoint:
 
 ```text
-https://api.noonlight.com/platform/v1
+https://api.noonlight.com/dispatch/v1
 ```
 
-Sandbox API endpoint example:
+Sandbox dispatch endpoint:
 
 ```text
 https://api-sandbox.noonlight.com/dispatch/v1
+```
+
+The `/dispatch/v1` URL path should not be interpreted as meaning that only the original minimal payload is supported. This integration uses these dispatch endpoints with the enhanced dispatch payload.
+
+The Platform API endpoint is not the endpoint used to create dispatches:
+
+```text
+https://api.noonlight.com/platform/v1
 ```
 
 Token endpoint example:
