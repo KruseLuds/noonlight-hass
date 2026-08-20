@@ -97,6 +97,12 @@ Examples:
 
 The goal is to provide monitoring operators and first responders with clearer situational awareness at the same time the alarm is created.
 
+## v1.0.1 Bug Fix
+
+* Fixed per-action endpoint overrides so the documented Home Assistant action fields `api_endpoint` and `token_endpoint` are honored correctly.
+* Existing `api_endpoint_override` and `token_endpoint_override` field names remain accepted for backward compatibility.
+* Production/sandbox fail-closed safety behavior is unchanged.
+
 ## Features
 
 ### Core Features
@@ -317,8 +323,8 @@ This allows users to safely test alarm automations without live dispatches, vali
 Example override fields used when calling `noonlight.create_alarm`:
 
 ```yaml
-api_endpoint_override:
-token_endpoint_override:
+api_endpoint:
+token_endpoint:
 server_token_override:
 ```
 
@@ -481,8 +487,8 @@ data:
   service: police
   alarm_cause: TEST alarm only
   instructions: TEST ONLY. DO NOT DISPATCH.
-  api_endpoint_override: https://api-sandbox.noonlight.com/dispatch/v1
-  token_endpoint_override: https://noonlight.konnected.io/ha/token
+  api_endpoint: https://api-sandbox.noonlight.com/dispatch/v1
+  token_endpoint: https://noonlight.konnected.io/ha/token
   server_token_override: YOUR_SANDBOX_SERVER_TOKEN
 ```
 
@@ -501,8 +507,8 @@ data:
     webhook handling,
     dispatch event logging,
     and production safety protections.
-  api_endpoint_override: https://api-sandbox.noonlight.com/dispatch/v1
-  token_endpoint_override: https://noonlight.konnected.io/ha/token
+  api_endpoint: https://api-sandbox.noonlight.com/dispatch/v1
+  token_endpoint: https://noonlight.konnected.io/ha/token
   server_token_override: YOUR_SANDBOX_SERVER_TOKEN
 ```
 

@@ -193,8 +193,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         service = call.data.get("service", None)
         alarm_cause = call.data.get(ATTR_ALARM_CAUSE)
         instructions = call.data.get(ATTR_INSTRUCTIONS)
-        api_endpoint_override = call.data.get("api_endpoint_override")
-        token_endpoint_override = call.data.get("token_endpoint_override")
+        api_endpoint_override = (
+            call.data.get("api_endpoint")
+            or call.data.get("api_endpoint_override")
+        )
+        token_endpoint_override = (
+            call.data.get("token_endpoint")
+            or call.data.get("token_endpoint_override")
+        )
         server_token_override = call.data.get("server_token_override")
 
         await noonlight_integration.create_alarm(
