@@ -43,8 +43,10 @@ CONF_LOCATION_MODE = "location_mode"
 CONST_ALARM_STATUS_ACTIVE = "ACTIVE"
 CONST_ALARM_STATUS_CANCELED = "CANCELED"
 
-# Home Assistant service name registered as noonlight.create_alarm.
+# Home Assistant service names registered as noonlight.create_alarm and
+# noonlight.cancel_alarm.
 CONST_NOONLIGHT_HA_SERVICE_CREATE_ALARM = "create_alarm"
+CONST_NOONLIGHT_HA_SERVICE_CANCEL_ALARM = "cancel_alarm"
 
 # Service types accepted by Noonlight alarm creation.
 CONST_NOONLIGHT_SERVICE_TYPES = (
