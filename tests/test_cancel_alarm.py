@@ -43,6 +43,7 @@ class FakeNoonlight:
         self.alarms = 0
         self.reject_all = False      # every token gets 401
         self.delay = 0               # seconds before the broker / cancel answer
+        self.reject_secondary = False
 
     async def token(self, request):
         await asyncio.sleep(self.delay)
@@ -79,6 +80,13 @@ class FakeNoonlight:
         return web.json_response(self.status_response or
                                  {"status": "CANCELED", "created_at": "2026-01-01T00:00:00Z"}, status=201)
 
+    async def secondary(self, request):
+        body = await request.json()
+        self.requests.append((request.path, request.headers.get("Authorization"), body))
+        if self.reject_secondary:
+            return web.json_response({"message": "Secondary contact invalid"}, status=400)
+        return web.json_response({"id": "P1"}, status=201)
+
     def status_posts(self):
         return [r for r in self.requests if r[0].endswith("/status")]
 
@@ -95,6 +103,7 @@ class Harness:
         for env in (SANDBOX, PRODUCTION):
             app.router.add_post(f"/{env}/alarms", self.fake.create)
             app.router.add_post(f"/{env}/alarms/{{alarm_id}}/status", self.fake.status)
+            app.router.add_post(f"/{env}/alarms/{{alarm_id}}/people", self.fake.secondary)
         self.runner = web.AppRunner(app)
         await self.runner.setup()
         site = web.TCPSite(self.runner, "127.0.0.1", 0)
@@ -507,4 +516,89 @@ def test_failed_cancel_keeps_the_route_for_a_retry(tmp_path):
             assert not await n.cancel_alarm(alarm_id=alarm_id, pin="0000")
             assert alarm_id in n._alarm_routes
             assert await n.cancel_alarm(alarm_id=alarm_id)
+    run(go())
+
+
+def test_removed_dev_token_fails_closed_without_broker_contact(tmp_path):
+    async def go():
+        async with Harness(tmp_path) as h:
+            n = await h.integration(**h.config(dev_token="DEVTOKEN"))
+            assert await n.create_alarm(alarm_types=["police"])
+            alarm_id = await created_id(h)
+            assert n._alarm_routes[alarm_id]["token_source"] == "dev"
+            n.config = {k: v for k, v in n.config.items() if k != "dev_token"}
+            before = len(h.fake.requests)
+            assert not await n.cancel_alarm(alarm_id=alarm_id)
+            assert len(h.fake.requests) == before  # neither broker nor status called
+            event, data = await h.last_event()
+            assert event == "noonlight_alarm_failed"
+            assert data["action"] == "cancel"
+            assert "dev token" in data["error"]
+            assert alarm_id in n._alarm_routes  # retain route for retry
+    run(go())
+
+
+def test_secondary_contact_success_is_reported_and_cancel_remains_possible(tmp_path):
+    async def go():
+        async with Harness(tmp_path) as h:
+            n = await h.integration(**h.config(name2="Backup", phone2="15555550200"))
+            assert await n.create_alarm(alarm_types=["police"])
+            alarm_id = await created_id(h)
+            event, data = await h.last_event()
+            assert event == "noonlight_alarm_created"
+            assert data["secondary_contact_added"] is True
+            assert alarm_id in n._alarm_routes
+            assert any(r[0].endswith(f"/alarms/{alarm_id}/people") for r in h.fake.requests)
+            assert await n.cancel_alarm(alarm_id=alarm_id)
+    run(go())
+
+
+def test_secondary_contact_failure_preserves_active_alarm_and_route(tmp_path, caplog):
+    async def go():
+        async with Harness(tmp_path) as h:
+            h.fake.reject_secondary = True
+            n = await h.integration(**h.config(name2="Backup", phone2="15555550200"))
+            assert await n.create_alarm(alarm_types=["police"])
+            alarm_id = await created_id(h)
+            event, data = await h.last_event()
+            assert event == "noonlight_alarm_created"
+            assert data["secondary_contact_added"] is False
+            assert data["restart_safe_cancel"] is True
+            assert alarm_id in n._alarm_routes
+            assert not [e for e in h.events if e[0] == "noonlight_alarm_failed"]
+            n2 = await h.integration()
+            assert alarm_id in n2._alarm_routes
+            assert await n2.cancel_alarm(alarm_id=alarm_id)
+    run(go())
+    assert "primary dispatch remains active" in caplog.text
+
+
+def test_missing_configured_pin_fails_closed_without_any_api_request(tmp_path):
+    async def go():
+        async with Harness(tmp_path) as h:
+            n = await h.integration()
+            assert await n.create_alarm(alarm_types=["police"])
+            alarm_id = await created_id(h)
+            n.config = {k: v for k, v in n.config.items() if k != "pin"}
+            before = len(h.fake.requests)
+            assert not await n.cancel_alarm(alarm_id=alarm_id)
+            assert len(h.fake.requests) == before
+            event, data = await h.last_event()
+            assert event == "noonlight_alarm_failed"
+            assert data["action"] == "cancel"
+            assert "PIN-less" in data["error"]
+            assert alarm_id in n._alarm_routes
+    run(go())
+
+
+def test_blank_pin_override_fails_closed(tmp_path):
+    async def go():
+        async with Harness(tmp_path) as h:
+            n = await h.integration()
+            assert await n.create_alarm(alarm_types=["police"])
+            alarm_id = await created_id(h)
+            before = len(h.fake.requests)
+            assert not await n.cancel_alarm(alarm_id=alarm_id, pin="   ")
+            assert len(h.fake.requests) == before
+            assert (await h.last_event())[0] == "noonlight_alarm_failed"
     run(go())

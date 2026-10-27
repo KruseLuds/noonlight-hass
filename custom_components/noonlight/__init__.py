@@ -648,23 +648,15 @@ class NoonlightIntegration:
                 if services:
                     alarm_body["services"] = services
 
-                _LOGGER.warning("Noonlight alarm body: %s", alarm_body)
+                # Avoid logging address, contact number or cancellation PIN.
+                _LOGGER.debug(
+                    "Noonlight alarm payload prepared (%s), fields: %s",
+                    event_base["environment"],
+                    sorted(alarm_body),
+                )
 
                 self._alarm = await self.client.create_alarm(body=alarm_body)
 
-                # Optional second contact. Some dispatch flows support adding a
-                # secondary person after the alarm is created.
-                if self.config.get(CONF_NAME2) and self.config.get(CONF_PHONE2):
-                    await self.client._post(
-                        f"{self.client.alarms_url}/{self._alarm.id}/people",
-                        data=[
-                            {
-                                "name": self.config.get(CONF_NAME2),
-                                "phone": self.config.get(CONF_PHONE2),
-                                "pin": self.config.get(CONF_PIN),
-                            }
-                        ],
-                    )
             else:
                 # Original/non-dispatch style payload. If an address is
                 # configured, use it. Otherwise fall back to Home Assistant
@@ -692,7 +684,12 @@ class NoonlightIntegration:
                 if services:
                     alarm_body["services"] = services
 
-                _LOGGER.warning("Noonlight alarm body: %s", alarm_body)
+                # Avoid logging address, contact number or cancellation PIN.
+                _LOGGER.debug(
+                    "Noonlight alarm payload prepared (%s), fields: %s",
+                    event_base["environment"],
+                    sorted(alarm_body),
+                )
 
                 self._alarm = await self.client.create_alarm(body=alarm_body)
 
@@ -724,6 +721,35 @@ class NoonlightIntegration:
                     else "broker"
                 ),
             )
+            # The primary alarm is already ACTIVE and its cancellation route
+            # is now recorded. An optional secondary-contact API failure must
+            # not turn a successfully dispatched alarm into a false create failure.
+            if (
+                "dispatch" in api_endpoint
+                and self.config.get(CONF_NAME2)
+                and self.config.get(CONF_PHONE2)
+            ):
+                try:
+                    async with asyncio.timeout(20):
+                        await self.client._post(
+                            f"{self.client.alarms_url}/{self._alarm.id}/people",
+                            data=[
+                                {
+                                    "name": self.config.get(CONF_NAME2),
+                                    "phone": self.config.get(CONF_PHONE2),
+                                    "pin": self.config.get(CONF_PIN),
+                                }
+                            ],
+                        )
+                    event_data["secondary_contact_added"] = True
+                except Exception:
+                    event_data["secondary_contact_added"] = False
+                    _LOGGER.exception(
+                        "Noonlight alarm %s is ACTIVE, but adding the optional "
+                        "secondary contact failed; the primary dispatch remains active",
+                        self._alarm.id,
+                    )
+
             async_dispatcher_send(self.hass, EVENT_NOONLIGHT_ALARM_CREATED)
             self._fire_noonlight_event(EVENT_NOONLIGHT_ALARM_CREATED, event_data)
 
@@ -910,14 +936,24 @@ class NoonlightIntegration:
                 "Noonlight production endpoint with a sandbox server token override. "
                 "Failing closed and not cancelling."
             )
+        # Noonlight's Dispatch API accepts cancellation requests without a PIN.
+        # This home-security integration deliberately refuses to send one:
+        # a missing/blank PIN must never silently bypass identity verification.
+        if pin is None or not str(pin).strip():
+            return fail(
+                "No Noonlight cancellation PIN is available. Refusing to send a "
+                "PIN-less cancellation request. Nothing was sent to Noonlight."
+            )
 
         async def get_token(renew):
             """Token for this cancel, or None. Never raises."""
             try:
                 if token_source == "server_override":
                     return override or self._alarm_tokens.get(alarm_id, (None, None))[0]
-                if token_source == "dev" and self.config.get(CONF_DEV_TOKEN):
-                    return self.config.get(CONF_DEV_TOKEN)
+                if token_source == "dev":
+                    # The recorded authentication source must never change.
+                    # If the dev token disappears, do not silently use a broker token.
+                    return self.config.get(CONF_DEV_TOKEN) or None
                 if not renew:
                     token, expires = self._alarm_tokens.get(alarm_id, (None, None))
                     if token and expires and expires - dt_util.utcnow() > CANCEL_TOKEN_MIN_REMAINING:
@@ -942,11 +978,14 @@ class NoonlightIntegration:
                     "No sandbox server token for this sandbox alarm (tokens are not kept "
                     "across restarts). Call noonlight.cancel_alarm with server_token_override."
                 )
+            if token_source == "dev":
+                return fail(
+                    "The dev token used for this alarm is no longer configured. "
+                    "Refusing to switch authentication sources. Nothing was sent to Noonlight."
+                )
             return fail("Noonlight token renewal failed. Alarm was not cancelled.")
 
-        body = {"status": CONST_ALARM_STATUS_CANCELED}
-        if pin:
-            body["pin"] = str(pin)
+        body = {"status": CONST_ALARM_STATUS_CANCELED, "pin": str(pin).strip()}
 
         response = None
         for attempt in (1, 2):
