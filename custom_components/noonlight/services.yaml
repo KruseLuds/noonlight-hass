@@ -117,7 +117,9 @@ cancel_alarm:
 
     pin:
       name: PIN
-      description: PIN Noonlight verifies before cancelling. Defaults to the configured PIN.
+      description: >-
+        Defaults to the configured PIN. A nonblank PIN must be available;
+        requests without a PIN fail closed without contacting Noonlight.
       required: false
       selector:
         text:
