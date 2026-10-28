@@ -97,6 +97,13 @@ Examples:
 
 The goal is to provide monitoring operators and first responders with clearer situational awareness at the same time the alarm is created.
 
+## v1.1.0 Additions
+
+* Added `noonlight.cancel_alarm` with required alarm IDs, PIN checks, and explicit success/failure events.
+* Cancellation remembers each alarm's sandbox or production route for up to 24 hours, including after Home Assistant restarts.
+* Added token-renewal, timeout, and fail-closed safeguards for cancellation, plus automated regression tests.
+* Updated contact-phone formatting validation during configuration and reconfiguration.
+
 ## v1.0.1 Bug Fix
 
 * Fixed per-action endpoint overrides so the documented Home Assistant action fields `api_endpoint` and `token_endpoint` are honored correctly.
@@ -337,6 +344,8 @@ server_token_override:
 This fork was designed to support automation-driven workflows where dispatch behavior, notification routing, testing modes, and safety protections are controlled externally by Home Assistant logic rather than hardcoded directly inside the integration.
 
 ## Service: `noonlight.create_alarm`
+
+Creates an alarm request using the configured Noonlight dispatch endpoint or the optional per-request overrides. See the police, fire, medical, and sandbox examples below.
 
 ## Service: `noonlight.cancel_alarm`
 
@@ -827,6 +836,8 @@ pytest tests
 
 Live sandbox testing stays manual and separate: use your own developer credentials locally and never commit them.
 
+To observe a cancellation in Home Assistant, open **Developer Tools > Events**, type `noonlight_alarm_canceled` into the event subscription field, and start listening **before** invoking the action. Home Assistant does not list every possible event type in its sidebar, and the event listener does not replay events that already occurred. A `noonlight_webhook_received` event with an `alarm.closed` payload is a separate confirmation that Noonlight closed an alarm; it does not, by itself, prove which cancellation method initiated closure.
+
 ## Recommended Testing Workflow
 
 ### 1. Configure Sandbox Mode First
@@ -912,6 +923,8 @@ Original integration concept and implementation:
 * Original Noonlight Home Assistant integration contributors
 
 This repository is a community-maintained fork intended to modernize and extend functionality.
+
+* [ChuckBuilds](https://github.com/ChuckBuilds) for the cancellation service, persistence and token-safety implementation, and automated cancellation tests contributed through [PR #2](https://github.com/KruseLuds/noonlight-hass/pull/2).
 
 ## Related Links
 

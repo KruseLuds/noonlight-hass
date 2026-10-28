@@ -2,7 +2,7 @@ name: Create Zip on Release
 on:
   workflow_dispatch:
   release:
-    types: [published, edited]
+    types: [published]
 jobs:
   create_zip:
     runs-on: ubuntu-latest
@@ -17,21 +17,25 @@ jobs:
             echo "github.event.release.target_commitish: ${{ github.event.release.target_commitish }}"
             echo "github.event.release.prerelease: ${{ github.event.release.prerelease }}"
             echo "github.event.release.draft: ${{ github.event.release.draft }}"      
-      - name: Update Version in Manifest
-        if: ${{ github.event_name == 'release' && github.event.release.prerelease == false && github.event.release.draft == false }}
+      - name: Verify committed version matches tag
+        if: ${{ github.event_name == 'release' }}
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          sed -i 's/\"version\"\s*\:\s*\".*\"/\"version\"\:\"${{ github.ref_name }}\"/g' ./custom_components/noonlight/manifest.json
-      - name: Update Version in const.py
-        if: ${{ github.event_name == 'release' && github.event.release.prerelease == false && github.event.release.draft == false }}
-        run: |
-          sed -i 's/VERSION \= \".*\"/VERSION \= \"${{ github.ref_name }}\"/' ./custom_components/noonlight/const.py
-      - name: Commit & Push Version Changes
-        if: ${{ github.event_name == 'release' && github.event.release.prerelease == false && github.event.release.draft == false }}
-        uses: actions-js/push@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.event.release.target_commitish }}
-          message: 'Updating to version ${{ github.ref_name }}'
+          python - <<'PYVERIFY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+
+          manifest = json.loads(Path('custom_components/noonlight/manifest.json').read_text())
+          constants = Path('custom_components/noonlight/const.py').read_text()
+          version = manifest['version']
+          tag = os.environ['RELEASE_TAG']
+          assert tag == f'v{version}', f'Release {tag} does not match manifest {version}'
+          assert re.search(r'^VERSION = ["\']' + re.escape(tag) + r'["\']$', constants, re.M), 'const.py version mismatch'
+          print('Source version verified:', tag)
+          PYVERIFY
       - name: Create Zip
         uses: thedoctor0/zip-release@0.7.6
         with:

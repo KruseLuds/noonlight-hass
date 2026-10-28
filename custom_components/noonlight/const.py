@@ -8,7 +8,7 @@ from noonlight import (
 )
 
 # Integration version shown/used by this fork.
-VERSION = "v1.0.1"
+VERSION = "v1.1.0"
 
 # Home Assistant integration domain.
 DOMAIN = "noonlight"
