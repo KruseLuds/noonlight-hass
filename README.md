@@ -285,7 +285,11 @@ Fired when the external Noonlight service successfully creates an active alarm i
 
 ### `noonlight_alarm_failed`
 
-Fired when alarm creation fails.
+Fired when alarm creation fails. A failed `noonlight.cancel_alarm` also fires this event, with `action: cancel` and the `alarm_id`.
+
+### `noonlight_alarm_canceled`
+
+Fired when `noonlight.cancel_alarm` succeeds. Data: `alarm_id`, `api_endpoint`, `environment`.
 
 ### `noonlight_webhook_received`
 
@@ -333,6 +337,40 @@ server_token_override:
 This fork was designed to support automation-driven workflows where dispatch behavior, notification routing, testing modes, and safety protections are controlled externally by Home Assistant logic rather than hardcoded directly inside the integration.
 
 ## Service: `noonlight.create_alarm`
+
+## Service: `noonlight.cancel_alarm`
+
+Cancels an active alarm through the Dispatch API (`POST /alarms/{id}/status` with `status: CANCELED` and the PIN).
+
+| Field | Default | Notes |
+|---|---|---|
+| `alarm_id` | **Required** | The `alarm_id` from `noonlight_alarm_created` |
+| `pin` | Configured PIN | Noonlight verifies it before cancelling |
+| `server_token_override` | - | Only to cancel a sandbox alarm created before a restart. Rejected for production |
+
+`alarm_id` is required. A call without it fails (`noonlight_alarm_failed`) and sends nothing to Noonlight, rather than guessing which incident to cancel.
+
+```yaml
+action: noonlight.cancel_alarm
+data:
+  alarm_id: "{{ trigger.event.data.alarm_id }}"
+```
+
+**Events.** `noonlight_alarm_canceled` fires only when Noonlight confirms the cancellation (a 2xx response with `status: CANCELED`). Anything else, including token problems and a token renewal or cancel request that takes longer than 20 seconds, fires `noonlight_alarm_failed` with `action: cancel` and the error. A failed cancel means the alarm may still be active: answer Noonlight's call or text and give your PIN.
+
+Disarming an alarm panel (Alarmo, manual, etc.) does **not** cancel a Noonlight dispatch. They are separate operations; only this action, confirmed by `noonlight_alarm_canceled`, cancels with Noonlight.
+
+**Environment and restarts.** Each created alarm's route (API endpoint, token endpoint, environment) is stored in Home Assistant's `.storage`, **without tokens**, and kept for 24 hours. A cancel always goes to the environment that created the alarm, even after a restart or a change to the configured endpoint. An `alarm_id` this integration did not create in the last 24 hours (a typo, a stale ID, an alarm from another system) fails closed: nothing is sent to Noonlight and `noonlight_alarm_failed` explains why. The 24 hours are enforced at cancel time too, not only on restart.
+
+If the route cannot be saved, the alarm is still created: `noonlight_alarm_created` carries `restart_safe_cancel: false`, a warning is logged, and a Repairs issue explains that cancelling after a restart is unavailable. It clears once saving works again.
+
+**Tokens.**
+
+| Alarm created with | Cancel uses |
+|---|---|
+| Production (token broker) | The same token while it has more than 5 minutes left, otherwise a token renewed through the token endpoint that created the alarm. A `401` renews once and retries once |
+| Dev token | The configured dev token |
+| Sandbox server token | The same token. After a restart it is gone: pass `server_token_override`, or the call fails closed without contacting Noonlight |
 
 ## Integration Information Entity
 
@@ -777,6 +815,17 @@ Advanced users may choose to integrate this fork alongside:
 Example workflows may include TEST vs LIVE dispatch modes, sandbox vs production endpoint separation, dispatch deduplication windows, family escalation sequencing, voice call escalation, SMS queueing, inbound webhook event handling, dashboard monitoring, and automated dispatch logging.
 
 This integration is intentionally designed to integrate cleanly with broader Home Assistant automation ecosystems.
+
+## Automated Tests
+
+`tests/` holds automated tests for `noonlight.cancel_alarm`. They run against a mocked Noonlight Dispatch API and token broker on localhost, so they need no credentials and make no real Noonlight calls. CI runs them on every push and pull request (`.github/workflows/tests.yml`).
+
+```bash
+pip install -r requirements_test.txt
+pytest tests
+```
+
+Live sandbox testing stays manual and separate: use your own developer credentials locally and never commit them.
 
 ## Recommended Testing Workflow
 

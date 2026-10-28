@@ -1,5 +1,11 @@
 {
   "title": "Noonlight Enhanced",
+  "issues": {
+    "alarm_routes_not_saved": {
+      "title": "Noonlight: cancelling after a restart is unavailable",
+      "description": "Home Assistant could not save (or load) the information needed to cancel Noonlight alarms after a restart. Alarms are still created, and noonlight.cancel_alarm works until Home Assistant restarts. Alarms created while this lasts cannot be cancelled from Home Assistant after a restart: answer Noonlight's call or text and give your PIN. Check the log for storage errors; this clears itself once saving works again."
+    }
+  },
   "config": {
     "abort": {
       "already_configured": "Already Configured: Only 1 instance of Noonlight Enhanced permitted",

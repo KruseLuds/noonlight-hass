@@ -4,6 +4,7 @@
 # This integration exposes:
 #
 #   noonlight.create_alarm
+#   noonlight.cancel_alarm
 #
 # This fork extends the original integration with:
 #
@@ -94,3 +95,40 @@ create_alarm:
       example: "Initial alarm setup, please call so client can verify everything is working."
       selector:
         text:
+
+cancel_alarm:
+  name: Cancel Alarm
+  description: >-
+    Cancel an active Noonlight alarm in the environment (sandbox or
+    production) that created it. Fires noonlight_alarm_canceled only when
+    Noonlight confirms the cancellation, otherwise noonlight_alarm_failed
+    (action: cancel).
+
+  fields:
+    alarm_id:
+      name: Alarm ID
+      description: >-
+        Alarm to cancel, from the noonlight_alarm_created event. Required. IDs
+        not created by this integration in the last 24 hours are refused
+        without contacting Noonlight.
+      required: true
+      selector:
+        text:
+
+    pin:
+      name: PIN
+      description: PIN Noonlight verifies before cancelling. Defaults to the configured PIN.
+      required: false
+      selector:
+        text:
+          type: password
+
+    server_token_override:
+      name: Sandbox Server Token Override
+      description: >-
+        Only needed to cancel a SANDBOX alarm created before Home Assistant
+        restarted (sandbox tokens are not stored). Rejected for production.
+      required: false
+      selector:
+        text:
+          type: password
